@@ -25,10 +25,10 @@ RUN groupadd -r spring && useradd -r -g spring spring
 # Copy the built jar from the builder stage
 COPY --from=builder /app/build/libs/*.jar app.jar
 
-# Utworzenie folderu, nadanie uprawnień i przekazanie własności jako ROOT
-RUN mkdir -p /app/uploads && chown -R spring:spring /app && chmod 777 /app/uploads
+# FileStorageService creates ./uploads under the working directory at startup;
+# the non-root user needs write access to /app for that to succeed.
+RUN mkdir -p /app/uploads && chown -R spring:spring /app
 
-# DOPIEROT TERAZ przełączamy się na bezpiecznego użytkownika
 USER spring:spring
 
 EXPOSE 8080
