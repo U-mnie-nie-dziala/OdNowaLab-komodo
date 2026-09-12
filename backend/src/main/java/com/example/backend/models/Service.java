@@ -33,8 +33,8 @@ public class Service {
     private Integer id;
 
     @NotBlank
-    @Size(max = 20)
-    @Column(name = "name", nullable = false, length = 20)
+    @Size(max = 50)
+    @Column(name = "name", nullable = false, length = 50)
     private String name;
 
     @NotNull

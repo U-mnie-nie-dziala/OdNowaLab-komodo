@@ -18,8 +18,8 @@ import lombok.NoArgsConstructor;
 public class ServiceRequestDto {
 
     @NotBlank(message = "Name is required")
-    @Size(max = 20, message = "Name must not exceed 20 characters")
-    @Schema(description = "Name of the service", example = "Kawa i ciastko", maxLength = 20)
+    @Size(max = 50, message = "Name must not exceed 50 characters")
+    @Schema(description = "Name of the service", example = "Kawa i ciastko", maxLength = 50)
     private String name;
 
     @NotNull(message = "CoinCost is required")
