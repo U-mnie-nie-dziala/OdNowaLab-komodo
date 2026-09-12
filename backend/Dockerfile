@@ -21,10 +21,15 @@ WORKDIR /app
 
 # Create a non-root user for security
 RUN groupadd -r spring && useradd -r -g spring spring
-USER spring:spring
 
 # Copy the built jar from the builder stage
 COPY --from=builder /app/build/libs/*.jar app.jar
+
+# FileStorageService creates ./uploads under the working directory at startup;
+# the non-root user needs write access to /app for that to succeed.
+RUN mkdir -p /app/uploads && chown -R spring:spring /app
+
+USER spring:spring
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
