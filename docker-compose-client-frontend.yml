@@ -1,0 +1,12 @@
+services:
+  client-frontend:
+    build:
+      context: ./client-frontend
+      dockerfile: Dockerfile
+      args:
+        - BACKEND_ORIGIN=${BACKEND_ORIGIN}
+        - NEXT_PUBLIC_MAPBOX_TOKEN=${NEXT_PUBLIC_MAPBOX_TOKEN} # DODANE
+    container_name: nextjs_client_frontend
+    ports:
+      - "80:80"
+    restart: unless-stopped

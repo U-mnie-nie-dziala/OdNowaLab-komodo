@@ -1,0 +1,32 @@
+name: Deploy Client Frontend
+
+on:
+  workflow_call:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Client Frontend to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_CLIENT_FRONTEND_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            if [ ! -d "OdNowaLab-komodo" ]; then
+              git clone https://${{ secrets.GH_PAT }}@github.com/U-mnie-nie-dziala/OdNowaLab-komodo.git
+            fi
+            
+            cd OdNowaLab-komodo
+            git pull origin main
+            
+            # Tworzymy plik .env i dodajemy zmienne
+            echo "BACKEND_ORIGIN=http://${{ secrets.EC2_HOST }}:8080" > .env
+            echo "NEXT_PUBLIC_MAPBOX_TOKEN=${{ secrets.MAPBOX_TOKEN }}" >> .env
+            
+            # Wdraża frontend kliencki
+            docker compose -f docker-compose-client-frontend.yml up -d --build
+            
+            # Czyści dysk
+            docker image prune -f
