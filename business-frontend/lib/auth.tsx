@@ -37,9 +37,6 @@ export interface RegisterInput {
   nip: string;
   address: string;
   description: string;
-  locationX: number;
-  locationY: number;
-  isInRevitalizationZone: boolean;
 }
 
 interface BusinessMeta {
@@ -152,11 +149,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await companiesApi.create({
         name: input.companyName,
-        locationX: input.locationX,
-        locationY: input.locationY,
+        locationX: 52.34,
+        locationY: 21.23,
         description: input.description,
         ownerId: resp.user.id,
-        isInRevitalizationZone: input.isInRevitalizationZone,
+        isInRevitalizationZone: true,
         picture: null,
       });
 

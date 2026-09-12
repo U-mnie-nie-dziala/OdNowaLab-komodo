@@ -34,24 +34,20 @@ export default function HomePage() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-brand-200/50 blur-3xl" />
-        <div className="absolute -right-16 top-16 h-80 w-80 rounded-full bg-coin-300/40 blur-3xl" />
-      </div>
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-8 pt-14 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:pt-20">
+    <section className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-lav-200">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-12 pt-14 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:pt-20">
         <div>
           <span className="badge bg-brand-100 text-brand-800">
             <MapPinIcon className="h-3.5 w-3.5" /> Powiat Wołomiński
           </span>
-          <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight text-brand-900 sm:text-5xl">
+          <h1 className="mt-5 text-5xl font-bold leading-[1.02] tracking-tight text-brand-600 sm:text-6xl">
             Lokalne zakupy,
             <br />
             które się{" "}
-            <span className="relative whitespace-nowrap text-brand-600">
+            <span className="relative whitespace-nowrap text-[var(--ink)]">
               opłacają
               <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden>
-                <path d="M2 7 Q60 1 100 5 T198 4" fill="none" stroke="#f0a91e" strokeWidth="3" strokeLinecap="round" />
+                <path d="M2 7 L198 4" fill="none" stroke="#2b37e0" strokeWidth="4" strokeLinecap="square" />
               </svg>
             </span>
           </h1>
@@ -281,7 +277,7 @@ function Converter() {
                 <span className="flex items-center gap-2 font-bold text-brand-800">
                   <TagIcon className="h-4 w-4 text-brand-500" /> Zniżka {t.pct}%
                 </span>
-                <span className="badge bg-coin-100 text-coin-700" style={{ backgroundColor: "#fdf0d5" }}>
+                <span className="bg-brand-600 px-2.5 py-1 text-xs font-bold text-white">
                   {t.cost} WM
                 </span>
               </div>
@@ -330,8 +326,8 @@ function SectionHead({
 }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <span className="text-sm font-bold uppercase tracking-wider text-brand-600">{eyebrow}</span>
-      <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brand-900 sm:text-4xl">{title}</h2>
+      <span className="text-xs font-bold uppercase tracking-[0.16em] text-brand-600">{eyebrow}</span>
+      <h2 className="mt-2 text-3xl font-bold tracking-tight text-brand-600 sm:text-4xl">{title}</h2>
       <p className="mt-4 text-[var(--ink-soft)]">{subtitle}</p>
     </div>
   );

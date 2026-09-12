@@ -75,6 +75,12 @@ export interface TransactionResponseDto {
   id: number;
   userId: number;
   serviceId: number;
+  providerId: number | null;
+  providerName: string | null;
+  serviceName: string;
+  coinCost: number;
+  isValid: boolean;
+  isConsumed: boolean;
   date: string;
 }
 
@@ -83,6 +89,11 @@ export interface TransactionRequestDto {
   phoneNumber?: number;
   serviceId: number;
   date?: string;
+}
+
+export interface ConsumeTransactionRequestDto {
+  transactionId: number;
+  providerId?: number;
 }
 
 export interface RegisterRequestDto {
