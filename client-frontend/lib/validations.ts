@@ -41,3 +41,21 @@ export type AuthFormState = {
   success?: boolean;
   email?: string;
 };
+
+export const RedeemSchema = z.object({
+  companyId: z.coerce.number().int().positive("Wybierz partnera."),
+  pct: z.coerce
+    .number()
+    .int()
+    .refine(
+      (v) => [10, 30, 50, 100].includes(v),
+      "Wybierz prawidłowy próg zniżki.",
+    ),
+});
+
+export type RedeemFormState = {
+  errors?: Record<string, string[] | undefined>;
+  message?: string;
+  success?: boolean;
+  voucherId?: number;
+};

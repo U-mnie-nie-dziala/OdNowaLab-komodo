@@ -80,7 +80,7 @@ export default async function DashboardPage() {
       id: `tx-${t.id}`,
       date: t.date,
       kind: "spend" as const,
-      label: `${t.serviceName} · ${t.providerName}`,
+                      label: `${t.serviceName}${t.providerName ? ` · ${t.providerName}` : ""}`,
       amount: t.coinCost,
     })),
   ]
@@ -319,7 +319,8 @@ export default async function DashboardPage() {
                         {tx.serviceName}
                       </p>
                       <p className="truncate text-xs text-[var(--ink-soft)]">
-                        {formatDate(tx.date)} · {tx.providerName}
+                        {formatDate(tx.date)}
+                        {tx.providerName ? ` · ${tx.providerName}` : ""}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">

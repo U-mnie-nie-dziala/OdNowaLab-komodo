@@ -48,6 +48,11 @@ export function PublicFooter() {
               </Link>
             </li>
             <li>
+              <Link href="/dashboard/partnerzy" className="hover:text-brand-700">
+                Partnerzy
+              </Link>
+            </li>
+            <li>
               <Link href="/dashboard" className="hover:text-brand-700">
                 Twój panel
               </Link>

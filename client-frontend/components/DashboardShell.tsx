@@ -12,6 +12,7 @@ import {
   CoinIcon,
   LogoutIcon,
   MenuIcon,
+  StoreIcon,
   TagIcon,
   UserIcon,
 } from "@/components/icons";
@@ -19,6 +20,7 @@ import { formatCoins, formatNumber } from "@/lib/format";
 
 const NAV = [
   { href: "/dashboard", label: "Przegląd", icon: ChartIcon, exact: true },
+  { href: "/dashboard/partnerzy", label: "Partnerzy", icon: StoreIcon },
   { href: "/dashboard/znizki", label: "Zniżki", icon: TagIcon },
   { href: "/", label: "O programie", icon: CoinIcon },
 ];

@@ -1,22 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { RedeemForm } from "@/components/RedeemForm";
+import { VoucherList } from "@/components/VoucherList";
 import { PageHeader } from "@/components/PageHeader";
-import {
-  ArrowRightIcon,
-  CheckCircleIcon,
-  CoinIcon,
-  TagIcon,
-} from "@/components/icons";
+import { CoinIcon } from "@/components/icons";
+import { listCompanies, getUserTransactions } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { isActiveVoucher, isUsedVoucher } from "@/lib/discounts";
 import {
-  DISCOUNT_TIERS,
   EARN_RATE,
   formatCoins,
   formatNumber,
   formatPln,
   plnToCoins,
 } from "@/lib/format";
+import { getSessionTokens } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Zniżki",
@@ -24,12 +23,35 @@ export const metadata: Metadata = {
 
 export default async function DiscountsPage() {
   const user = await requireUser();
+  const tokens = await getSessionTokens();
+  const accessToken = tokens?.accessToken;
+
+  const [partners, transactions] = await Promise.all([
+    listCompanies(accessToken).catch(() => []),
+    accessToken
+      ? getUserTransactions(user.id, accessToken).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
+  const sortedPartners = [...partners].sort((a, b) =>
+    a.name.localeCompare(b.name, "pl"),
+  );
+
+  const vouchers = [...transactions].sort((a, b) => {
+    const aUsed = isUsedVoucher(a) ? 1 : 0;
+    const bUsed = isUsedVoucher(b) ? 1 : 0;
+    if (aUsed !== bUsed) return aUsed - bUsed;
+    return b.id - a.id;
+  });
+
+  const active = vouchers.filter(isActiveVoucher);
+  const used = vouchers.filter(isUsedVoucher);
 
   return (
     <div>
       <PageHeader
         title="Zniżki za monety"
-        subtitle="Wymieniaj Monety Wołomińskie na zniżki u partnerów w strefie rewitalizacji."
+        subtitle="Wykup bon zniżkowy za Monety Wołomińskie i zrealizuj go u wybranego partnera."
       />
 
       <div className="space-y-6">
@@ -50,78 +72,52 @@ export default async function DiscountsPage() {
                 {formatCoins(plnToCoins(50))}.
               </p>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-700">
-              <CoinIcon className="h-4 w-4" /> Monety Wołomińskie
-            </span>
-          </div>
-        </div>
-
-        <div className="card border-2 border-[var(--ink)] bg-white p-5">
-          <div className="flex items-start gap-3">
-            <CoinIcon className="mt-0.5 h-5 w-5 shrink-0" />
-            <div>
-              <p className="font-bold text-brand-600">
-                Zniżki są wspólne dla całego programu
-              </p>
-              <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                Te cztery progi obowiązują u partnerów w strefie rewitalizacji.
-                Podaj numer telefonu przy kasie — kasjer zrealizuje zniżkę z
-                Twojego salda.
-              </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 border-2 border-[var(--ink)] bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[var(--ink)]">
+                <CoinIcon className="h-4 w-4" /> {active.length} aktywnych
+              </span>
+              <Link
+                href="#moje-bony"
+                className="inline-flex items-center border-2 border-[var(--ink)] bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-600 hover:bg-lav-100"
+              >
+                Moje bony
+              </Link>
             </div>
           </div>
         </div>
 
-        <div className="card p-6">
-          <h2 className="text-lg font-bold text-brand-600">Progi zniżek</h2>
-          <p className="text-sm text-[var(--ink-soft)]">
-            Ceny wyrażone w Monetach Wołomińskich (WM).
+        <section className="card p-6">
+          <h2 className="text-lg font-bold text-brand-600">Wykup bon</h2>
+          <p className="mt-1 text-sm text-[var(--ink-soft)]">
+            Wybierz partnera i próg zniżki. Monety zostaną pobrane od razu — bon
+            okazujesz przy kasie, a sklep oznacza go jako wykorzystany.
           </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {DISCOUNT_TIERS.map((tier) => {
-              const ready = user.coins >= tier.cost;
-              const missing = Math.max(0, tier.cost - user.coins);
-              return (
-                <div
-                  key={tier.pct}
-                  className="flex items-center gap-4 border-2 border-[var(--ink)]/15 p-4"
-                >
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center bg-brand-600 text-white">
-                    <TagIcon className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-display text-lg font-bold text-brand-600">
-                        Zniżka {tier.pct}%
-                      </p>
-                      {ready ? (
-                        <span className="badge border-brand-600 text-brand-700">
-                          <CheckCircleIcon className="h-3.5 w-3.5" /> Dostępna
-                        </span>
-                      ) : (
-                        <span className="badge">
-                          Brakuje {formatCoins(missing)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm font-bold text-[var(--ink)]">
-                      {formatCoins(tier.cost)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mt-5">
+            <RedeemForm
+              coins={user.coins}
+              partners={sortedPartners.map((p) => ({
+                id: p.id,
+                name: p.name,
+                isInRevitalizationZone: p.isInRevitalizationZone,
+              }))}
+            />
           </div>
-        </div>
+        </section>
 
-        <div className="border-2 border-[var(--ink)] bg-lav-100 p-6 text-center sm:text-left">
-          <p className="text-sm text-[var(--ink-soft)]">
-            Zniżki realizujesz wyłącznie u partnerów programu. Nie wymieniasz
-            monet samodzielnie w aplikacji — robi to kasjer w sklepie.
-          </p>
-          <Link href="/dashboard" className="btn-outline mt-4 inline-flex">
-            Wróć do panelu <ArrowRightIcon className="h-4 w-4" />
-          </Link>
+        <div id="moje-bony" className="scroll-mt-8 space-y-6">
+          <VoucherList
+            title="Aktywne bony"
+            subtitle="Do okazania przy kasie partnera — jeszcze niewykorzystane."
+            vouchers={active}
+            empty="Nie masz aktywnych bonów. Wykup zniżkę powyżej."
+          />
+          <VoucherList
+            title="Historia bonów"
+            subtitle="Zrealizowane lub nieważne bony."
+            vouchers={used}
+            empty="Brak historii wymian."
+            used
+          />
         </div>
       </div>
     </div>
