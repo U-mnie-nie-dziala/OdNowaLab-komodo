@@ -24,5 +24,10 @@ jobs:
             # Pobiera najnowsze zmiany
             git pull origin main
             
+            # Tworzenie pliku .env z sekretów GitHuba
+            echo "SPRING_DATASOURCE_URL=${{ secrets.DB_URL }}" > .env
+            echo "SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
+            echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+            
             # Stawia kontenery
             docker compose up -d --build
