@@ -45,4 +45,7 @@ public class CompanyRequestDto {
     @Builder.Default
     @Schema(description = "Indicates whether the company is located in a revitalization zone", example = "true", defaultValue = "false")
     private Boolean isInRevitalizationZone = false;
+
+    @Schema(description = "Relative path or URL to the company picture static resource", example = "/uploads/companies/example.jpg")
+    private String picture;
 }

@@ -2,6 +2,7 @@ package com.example.backend.services;
 
 import com.example.backend.dtos.TransactionRequestDto;
 import com.example.backend.dtos.TransactionResponseDto;
+import com.example.backend.exceptions.InsufficientCoinsException;
 import com.example.backend.exceptions.ResourceNotFoundException;
 import com.example.backend.models.Service;
 import com.example.backend.models.Transaction;
@@ -53,11 +54,23 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponseDto createTransaction(TransactionRequestDto request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
-
         Service service = serviceRepository.findById(request.getServiceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + request.getServiceId()));
+
+        int cost = service.getCoinCost();
+
+        // Pessimistic lock on user to ensure coin balance cannot be overdrawn concurrently
+        User user = userRepository.findByIdWithLock(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+
+        if (user.getCoins() < cost) {
+            throw new InsufficientCoinsException(
+                    "Insufficient coins to complete transaction. Required: " + cost
+                            + ", available balance: " + user.getCoins());
+        }
+
+        user.setCoins(user.getCoins() - cost);
+        userRepository.save(user);
 
         Transaction transaction = Transaction.builder()
                 .user(user)
@@ -74,14 +87,61 @@ public class TransactionService {
         Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + id));
 
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
-
-        Service service = serviceRepository.findById(request.getServiceId())
+        Service newService = serviceRepository.findById(request.getServiceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + request.getServiceId()));
 
-        transaction.setUser(user);
-        transaction.setService(service);
+        Integer oldUserId = transaction.getUser().getId();
+        Integer newUserId = request.getUserId();
+        int oldCost = transaction.getService().getCoinCost();
+        int newCost = newService.getCoinCost();
+
+        if (oldUserId.equals(newUserId)) {
+            // Same user: lock user and adjust net difference
+            User user = userRepository.findByIdWithLock(oldUserId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + oldUserId));
+
+            int netCost = newCost - oldCost;
+            if (user.getCoins() < netCost) {
+                throw new InsufficientCoinsException(
+                        "Insufficient coins to update transaction. Additional coins required: "
+                                + netCost + ", available balance: " + user.getCoins());
+            }
+
+            user.setCoins(user.getCoins() - netCost);
+            userRepository.save(user);
+
+            transaction.setUser(user);
+        } else {
+            // Different users: lock both in fixed order to prevent deadlocks
+            int firstId = Math.min(oldUserId, newUserId);
+            int secondId = Math.max(oldUserId, newUserId);
+
+            User firstLocked = userRepository.findByIdWithLock(firstId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + firstId));
+            User secondLocked = userRepository.findByIdWithLock(secondId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + secondId));
+
+            User oldUser = oldUserId.equals(firstId) ? firstLocked : secondLocked;
+            User newUser = newUserId.equals(firstId) ? firstLocked : secondLocked;
+
+            // Refund previous user
+            oldUser.setCoins(oldUser.getCoins() + oldCost);
+
+            // Deduct from new user
+            if (newUser.getCoins() < newCost) {
+                throw new InsufficientCoinsException(
+                        "Insufficient coins for new transaction user. Required: "
+                                + newCost + ", available balance: " + newUser.getCoins());
+            }
+            newUser.setCoins(newUser.getCoins() - newCost);
+
+            userRepository.save(oldUser);
+            userRepository.save(newUser);
+
+            transaction.setUser(newUser);
+        }
+
+        transaction.setService(newService);
         transaction.setDate(request.getDate());
 
         Transaction updated = transactionRepository.save(transaction);
@@ -90,10 +150,18 @@ public class TransactionService {
 
     @Transactional
     public void deleteTransaction(Integer id) {
-        if (!transactionRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Transaction not found with id: " + id);
-        }
-        transactionRepository.deleteById(id);
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + id));
+
+        // Refund the user with pessimistic lock
+        User user = userRepository.findByIdWithLock(transaction.getUser().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + transaction.getUser().getId()));
+
+        int refund = transaction.getService().getCoinCost();
+        user.setCoins(user.getCoins() + refund);
+        userRepository.save(user);
+
+        transactionRepository.delete(transaction);
     }
 
     public TransactionResponseDto mapToResponse(Transaction transaction) {
