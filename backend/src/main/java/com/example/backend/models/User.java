@@ -1,0 +1,59 @@
+package com.example.backend.models;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "\"user\"")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private Integer id;
+
+    @NotBlank
+    @Size(max = 20)
+    @Column(name = "name", nullable = false, length = 20)
+    private String name;
+
+    @NotNull
+    @Column(name = "coins", nullable = false)
+    private Integer coins;
+
+    @NotBlank
+    @Size(max = 20)
+    @Column(name = "surname", nullable = false, length = 20)
+    private String surname;
+
+    @NotNull
+    @Column(name = "phone_number", nullable = false)
+    private Integer phoneNumber;
+
+    @NotNull
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
+
+    @NotNull
+    @Column(name = "is_owner", nullable = false)
+    @Builder.Default
+    private Boolean isOwner = false;
+}
