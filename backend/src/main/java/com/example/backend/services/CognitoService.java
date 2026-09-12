@@ -17,6 +17,8 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSign
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ForgotPasswordRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ForgotPasswordResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserAttributeVerificationCodeRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserAttributeVerificationCodeResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GlobalSignOutRequest;
@@ -27,6 +29,10 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.ResendConfi
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ResendConfirmationCodeResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.UpdateUserAttributesRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.UpdateUserAttributesResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.VerifyUserAttributeRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.VerifyUserAttributeResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -153,6 +159,40 @@ public class CognitoService {
         return cognitoClient.changePassword(request);
     }
 
+    public UpdateUserAttributesResponse updatePhoneNumber(String accessToken, String formattedPhoneNumber) {
+        log.info("Updating phone number in AWS Cognito to: {}", formattedPhoneNumber);
+        UpdateUserAttributesRequest request = UpdateUserAttributesRequest.builder()
+                .accessToken(accessToken)
+                .userAttributes(AttributeType.builder()
+                        .name("phone_number")
+                        .value(formattedPhoneNumber)
+                        .build())
+                .build();
+
+        return cognitoClient.updateUserAttributes(request);
+    }
+
+    public GetUserAttributeVerificationCodeResponse sendPhoneVerificationCode(String accessToken) {
+        log.info("Requesting SMS verification code from AWS Cognito for phone_number");
+        GetUserAttributeVerificationCodeRequest request = GetUserAttributeVerificationCodeRequest.builder()
+                .accessToken(accessToken)
+                .attributeName("phone_number")
+                .build();
+
+        return cognitoClient.getUserAttributeVerificationCode(request);
+    }
+
+    public VerifyUserAttributeResponse verifyPhoneNumber(String accessToken, String code) {
+        log.info("Verifying phone number SMS code in AWS Cognito");
+        VerifyUserAttributeRequest request = VerifyUserAttributeRequest.builder()
+                .accessToken(accessToken)
+                .attributeName("phone_number")
+                .code(code)
+                .build();
+
+        return cognitoClient.verifyUserAttribute(request);
+    }
+
     public GetUserResponse getUser(String accessToken) {
         log.debug("Fetching user profile from AWS Cognito using access token");
         GetUserRequest request = GetUserRequest.builder()
@@ -200,14 +240,17 @@ public class CognitoService {
         return cognitoClient.adminCreateUser(builder.build());
     }
 
-    private String formatPhoneNumber(Integer phoneNumber) {
+    public String formatPhoneNumber(Object phoneNumber) {
         if (phoneNumber == null) {
             return null;
         }
-        String str = String.valueOf(phoneNumber).trim();
-        if (!str.startsWith("+")) {
-            return "+48" + str;
+        String str = String.valueOf(phoneNumber).replaceAll("[^0-9+]", "").trim();
+        if (str.startsWith("+")) {
+            return str;
         }
-        return str;
+        if (str.startsWith("48") && str.length() == 11) {
+            return "+" + str;
+        }
+        return "+48" + str;
     }
 }

@@ -4,10 +4,12 @@ import com.example.backend.dtos.UserResponseDto;
 import com.example.backend.dtos.auth.AuthResponseDto;
 import com.example.backend.dtos.auth.ChangePasswordRequestDto;
 import com.example.backend.dtos.auth.ConfirmForgotPasswordRequestDto;
+import com.example.backend.dtos.auth.ConfirmPhoneRequestDto;
 import com.example.backend.dtos.auth.ConfirmSignUpRequestDto;
 import com.example.backend.dtos.auth.ForgotPasswordRequestDto;
 import com.example.backend.dtos.auth.LoginRequestDto;
 import com.example.backend.dtos.auth.MessageResponseDto;
+import com.example.backend.dtos.auth.PhoneVerificationRequestDto;
 import com.example.backend.dtos.auth.RefreshTokenRequestDto;
 import com.example.backend.dtos.auth.RegisterRequestDto;
 import com.example.backend.dtos.auth.RegisterResponseDto;
@@ -158,6 +160,55 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("new-acc-token"));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/phone/send-code returns 200 OK")
+    void sendPhoneVerificationCode_returnsOk() throws Exception {
+        PhoneVerificationRequestDto request = PhoneVerificationRequestDto.builder()
+                .phoneNumber(123456789)
+                .build();
+
+        when(authService.requestPhoneVerification(any(PhoneVerificationRequestDto.class), any()))
+                .thenReturn(MessageResponseDto.builder().message("SMS sent").success(true).build());
+
+        mockMvc.perform(post("/api/auth/phone/send-code")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("SMS sent"));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/phone/verify returns 200 OK")
+    void verifyPhone_returnsOk() throws Exception {
+        ConfirmPhoneRequestDto request = ConfirmPhoneRequestDto.builder()
+                .code("123456")
+                .phoneNumber(123456789)
+                .build();
+
+        when(authService.verifyPhone(any(ConfirmPhoneRequestDto.class), any()))
+                .thenReturn(MessageResponseDto.builder().message("Phone verified").success(true).build());
+
+        mockMvc.perform(post("/api/auth/phone/verify")
+                        .header("Authorization", "Bearer valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Phone verified"));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/phone/resend-code returns 200 OK")
+    void resendPhoneCode_returnsOk() throws Exception {
+        when(authService.resendPhoneVerificationCode(any(), any()))
+                .thenReturn(MessageResponseDto.builder().message("Code resent").success(true).build());
+
+        mockMvc.perform(post("/api/auth/phone/resend-code")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Code resent"));
     }
 
     @Test
