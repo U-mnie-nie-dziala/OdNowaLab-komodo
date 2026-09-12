@@ -9,6 +9,11 @@ const BACKEND_ORIGIN = (
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  allowedDevOrigins: [
+    "10.86.47.182",
+    "localhost",
+    "127.0.0.1",
+  ],
   async rewrites() {
     return [
       {

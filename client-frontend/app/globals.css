@@ -135,3 +135,96 @@ input[type="number"] {
   100% { transform: scale(1); opacity: 1; }
 }
 .animate-pop { animation: pop .25s ease-out both; }
+
+/* Leaflet partner map — angular pins matching brand UI */
+.partner-map-pin-wrap {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.partner-map-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.partner-map-pin__dot {
+  width: 16px;
+  height: 16px;
+  background: #2b37e0;
+  border: 2px solid #0e0f1a;
+  box-shadow: 0 2px 0 #0e0f1a;
+}
+
+.partner-map-pin__label {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #fff;
+  border: 2px solid #0e0f1a;
+  color: #0e0f1a;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 2px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.partner-map-popup-root .leaflet-popup-content-wrapper {
+  border: 2px solid #0e0f1a;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.partner-map-popup-root .leaflet-popup-content {
+  margin: 12px 14px;
+}
+
+.partner-map-popup-root .leaflet-popup-tip {
+  border: 2px solid #0e0f1a;
+  background: #fff;
+  box-shadow: none;
+}
+
+.partner-map-popup-root .leaflet-popup-close-button {
+  color: #0e0f1a !important;
+  font-size: 18px !important;
+  padding: 4px 8px !important;
+}
+
+.partner-map-popup__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2b37e0;
+  margin: 0;
+}
+
+.partner-map-popup__zone {
+  margin: 6px 0 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #1f27b8;
+}
+
+.partner-map-popup__desc {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #565771;
+}
+
+.leaflet-control-zoom a {
+  border-radius: 0 !important;
+  border-color: #0e0f1a !important;
+  color: #0e0f1a !important;
+}
