@@ -16,6 +16,12 @@ public class UserResponseDto {
     @Schema(description = "Unique identifier of the user", example = "1")
     private Integer id;
 
+    @Schema(description = "Email address of the user", example = "jan.kowalski@example.com")
+    private String email;
+
+    @Schema(description = "AWS Cognito unique subject identifier (sub)", example = "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d")
+    private String cognitoSub;
+
     @Schema(description = "First name of the user", example = "Jan")
     private String name;
 

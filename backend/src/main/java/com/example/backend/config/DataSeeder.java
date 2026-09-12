@@ -43,6 +43,7 @@ public class DataSeeder implements CommandLineRunner {
 
         // 1. Seed Users (Business Owners and Regular Residents)
         User ownerJan = User.builder()
+                .email("jan.kowalski@example.com")
                 .name("Jan")
                 .surname("Kowalski")
                 .phoneNumber(501111222)
@@ -52,6 +53,7 @@ public class DataSeeder implements CommandLineRunner {
                 .build();
 
         User ownerAnna = User.builder()
+                .email("anna.nowak@example.com")
                 .name("Anna")
                 .surname("Nowak")
                 .phoneNumber(502222333)
@@ -61,6 +63,7 @@ public class DataSeeder implements CommandLineRunner {
                 .build();
 
         User ownerPiotr = User.builder()
+                .email("piotr.wisniewski@example.com")
                 .name("Piotr")
                 .surname("Wiśniewski")
                 .phoneNumber(503333444)
@@ -70,6 +73,7 @@ public class DataSeeder implements CommandLineRunner {
                 .build();
 
         User userMaria = User.builder()
+                .email("maria.zielinska@example.com")
                 .name("Maria")
                 .surname("Zielińska")
                 .phoneNumber(601111222)
@@ -79,6 +83,7 @@ public class DataSeeder implements CommandLineRunner {
                 .build();
 
         User userTomasz = User.builder()
+                .email("tomasz.lewandowski@example.com")
                 .name("Tomasz")
                 .surname("Lewandowski")
                 .phoneNumber(602222333)
@@ -88,6 +93,7 @@ public class DataSeeder implements CommandLineRunner {
                 .build();
 
         User userZofia = User.builder()
+                .email("zofia.dabrowska@example.com")
                 .name("Zofia")
                 .surname("Dąbrowska")
                 .phoneNumber(603333444)

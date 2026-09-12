@@ -32,9 +32,25 @@ public class UserService {
         return mapToResponse(user);
     }
 
+    @Transactional(readOnly = true)
+    public UserResponseDto getUserByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        return mapToResponse(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponseDto getUserByCognitoSub(String cognitoSub) {
+        User user = userRepository.findByCognitoSub(cognitoSub)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with cognitoSub: " + cognitoSub));
+        return mapToResponse(user);
+    }
+
     @Transactional
     public UserResponseDto createUser(UserRequestDto request) {
         User user = User.builder()
+                .email(request.getEmail())
+                .cognitoSub(request.getCognitoSub())
                 .name(request.getName())
                 .coins(request.getCoins())
                 .surname(request.getSurname())
@@ -52,6 +68,12 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+        }
+        if (request.getCognitoSub() != null) {
+            user.setCognitoSub(request.getCognitoSub());
+        }
         user.setName(request.getName());
         user.setCoins(request.getCoins());
         user.setSurname(request.getSurname());
@@ -78,6 +100,8 @@ public class UserService {
     public UserResponseDto mapToResponse(User user) {
         return UserResponseDto.builder()
                 .id(user.getId())
+                .email(user.getEmail())
+                .cognitoSub(user.getCognitoSub())
                 .name(user.getName())
                 .coins(user.getCoins())
                 .surname(user.getSurname())

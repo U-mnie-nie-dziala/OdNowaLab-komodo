@@ -15,6 +15,12 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Integer> {
     List<User> findByIsDeletedFalse();
 
+    Optional<User> findByEmail(String email);
+
+    Optional<User> findByCognitoSub(String cognitoSub);
+
+    boolean existsByEmail(String email);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.id = :id")
     Optional<User> findByIdWithLock(@Param("id") Integer id);
