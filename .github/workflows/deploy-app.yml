@@ -31,8 +31,8 @@ jobs:
             echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
             echo "AWS_REGION=eu-central-1" >> .env
-            echo "COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" >> .env
-            echo "COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" >> .env
+            echo "AWS_COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" >> .env
+            echo "AWS_COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" >> .env
             echo "AWS_COGNITO_REGION=eu-central-1" >> .env
             
             # Stawia kontenery
