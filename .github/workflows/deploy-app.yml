@@ -16,7 +16,7 @@ jobs:
           script: |
             # Jeśli folderu nie ma, klonuje repozytorium używając tokena GH_PAT
             if [ ! -d "hackathon-aws-terraform-test" ]; then
-              git clone https://${{ secrets.GH_PAT }}@github.com/garnaalpak/hackathon-aws-terraform-test.git
+              git clone https://${{ secrets.GH_PAT }}@github.com/U-mnie-nie-dziala/OdNowaLab-komodo.git
             fi
             
             cd hackathon-aws-terraform-test
