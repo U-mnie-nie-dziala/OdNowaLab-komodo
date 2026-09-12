@@ -14,6 +14,9 @@ COPY . .
 ARG BACKEND_ORIGIN=http://localhost:8888
 ENV BACKEND_ORIGIN=$BACKEND_ORIGIN
 
+ARG NEXT_PUBLIC_MAPBOX_TOKEN
+ENV NEXT_PUBLIC_MAPBOX_TOKEN=$NEXT_PUBLIC_MAPBOX_TOKEN
+
 RUN npm run build
 
 # Stage 3: run the standalone server
@@ -21,6 +24,11 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=80
+
+# Server-side fetches in lib/api.ts resolve the backend origin at request time,
+# so the runner needs it too — not just the builder. Overridable at `docker run`.
+ARG BACKEND_ORIGIN=http://localhost:8888
+ENV BACKEND_ORIGIN=$BACKEND_ORIGIN
 
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 

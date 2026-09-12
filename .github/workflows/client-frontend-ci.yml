@@ -1,0 +1,13 @@
+name: Client Frontend CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'client-frontend/**'
+      - 'docker-compose-client-frontend.yml'
+
+jobs:
+  deploy-client:
+    uses: ./.github/workflows/deploy-client-frontend.yml
+    secrets: inherit
