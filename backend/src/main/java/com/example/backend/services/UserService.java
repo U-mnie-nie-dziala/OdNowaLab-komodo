@@ -53,9 +53,10 @@ public class UserService {
                 .cognitoSub(request.getCognitoSub())
                 .cognitoUsername(request.getCognitoUsername())
                 .name(request.getName())
-                .coins(request.getCoins())
+                .coins(request.getCoins() != null ? request.getCoins() : 0)
                 .surname(request.getSurname())
                 .phoneNumber(request.getPhoneNumber())
+                .isPhoneVerified(request.getIsPhoneVerified() != null ? request.getIsPhoneVerified() : false)
                 .isDeleted(request.getIsDeleted() != null ? request.getIsDeleted() : false)
                 .isOwner(request.getIsOwner() != null ? request.getIsOwner() : false)
                 .build();
@@ -79,9 +80,14 @@ public class UserService {
             user.setCognitoUsername(request.getCognitoUsername());
         }
         user.setName(request.getName());
-        user.setCoins(request.getCoins());
+        if (request.getCoins() != null) {
+            user.setCoins(request.getCoins());
+        }
         user.setSurname(request.getSurname());
         user.setPhoneNumber(request.getPhoneNumber());
+        if (request.getIsPhoneVerified() != null) {
+            user.setIsPhoneVerified(request.getIsPhoneVerified());
+        }
         if (request.getIsDeleted() != null) {
             user.setIsDeleted(request.getIsDeleted());
         }
@@ -111,6 +117,7 @@ public class UserService {
                 .coins(user.getCoins())
                 .surname(user.getSurname())
                 .phoneNumber(user.getPhoneNumber())
+                .isPhoneVerified(user.getIsPhoneVerified())
                 .isDeleted(user.getIsDeleted())
                 .isOwner(user.getIsOwner())
                 .build();

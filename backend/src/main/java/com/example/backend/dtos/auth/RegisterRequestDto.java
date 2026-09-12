@@ -3,7 +3,6 @@ package com.example.backend.dtos.auth;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,8 +36,7 @@ public class RegisterRequestDto {
     @Schema(description = "Last name", example = "Kowalski", maxLength = 20)
     private String surname;
 
-    @NotNull(message = "PhoneNumber is required")
-    @Schema(description = "Phone number", example = "123456789")
+    @Schema(description = "Optional phone number (can be provided and verified separately via SMS)", example = "123456789")
     private Integer phoneNumber;
 
     @Builder.Default

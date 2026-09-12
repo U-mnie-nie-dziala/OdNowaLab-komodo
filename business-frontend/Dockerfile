@@ -1,28 +1,28 @@
-# Stage 1: Build the React application
-FROM node:22-alpine AS builder
+# Stage 1: install dependencies
+FROM node:22-alpine AS deps
 WORKDIR /app
-
-# Copy dependency definition files
-COPY package.json package-lock.json* ./
-
-# Install dependencies
+COPY package.json package-lock.json ./
 RUN npm ci
 
-# Skopiowanie całego kodu źródłowego z obecnego katalogu
+# Stage 2: build the app
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Build aplikacji
 RUN npm run build
 
-# Stage 2: Serve the application using Node.js
-FROM node:22-alpine
+# Stage 3: run the standalone server
+FROM node:22-alpine AS runner
 WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=80
 
-# Copy built assets and dependencies from builder stage
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
+
 COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 
-EXPOSE 3000
-CMD ["npm", "start"]
+USER nextjs
+EXPOSE 80
+CMD ["node", "server.js"]

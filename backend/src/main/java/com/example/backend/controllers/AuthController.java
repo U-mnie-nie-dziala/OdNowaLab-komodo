@@ -4,10 +4,12 @@ import com.example.backend.dtos.UserResponseDto;
 import com.example.backend.dtos.auth.AuthResponseDto;
 import com.example.backend.dtos.auth.ChangePasswordRequestDto;
 import com.example.backend.dtos.auth.ConfirmForgotPasswordRequestDto;
+import com.example.backend.dtos.auth.ConfirmPhoneRequestDto;
 import com.example.backend.dtos.auth.ConfirmSignUpRequestDto;
 import com.example.backend.dtos.auth.ForgotPasswordRequestDto;
 import com.example.backend.dtos.auth.LoginRequestDto;
 import com.example.backend.dtos.auth.MessageResponseDto;
+import com.example.backend.dtos.auth.PhoneVerificationRequestDto;
 import com.example.backend.dtos.auth.RefreshTokenRequestDto;
 import com.example.backend.dtos.auth.RegisterRequestDto;
 import com.example.backend.dtos.auth.RegisterResponseDto;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -110,6 +113,59 @@ public class AuthController {
     @PostMapping("/confirm-forgot-password")
     public ResponseEntity<MessageResponseDto> confirmForgotPassword(@Valid @RequestBody ConfirmForgotPasswordRequestDto request) {
         return ResponseEntity.ok(authService.confirmForgotPassword(request));
+    }
+
+    @Operation(
+            summary = "Input phone number and send SMS verification code",
+            description = "Registers the user's phone number separately and requests an SMS verification code from AWS Cognito.",
+            security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "SMS verification code sent successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid phone number format"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - invalid access token")
+    })
+    @PostMapping("/phone/send-code")
+    public ResponseEntity<MessageResponseDto> sendPhoneVerificationCode(
+            @Valid @RequestBody PhoneVerificationRequestDto request,
+            @Parameter(name = "Authorization", in = ParameterIn.HEADER, description = "Bearer access token", required = false)
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        return ResponseEntity.ok(authService.requestPhoneVerification(request, authHeader));
+    }
+
+    @Operation(
+            summary = "Verify phone number via SMS code",
+            description = "Verifies the SMS code sent to the mobile device and marks the phone number as verified.",
+            security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Phone number verified successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid or expired SMS verification code"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - invalid access token")
+    })
+    @PostMapping("/phone/verify")
+    public ResponseEntity<MessageResponseDto> verifyPhoneNumber(
+            @Valid @RequestBody ConfirmPhoneRequestDto request,
+            @Parameter(name = "Authorization", in = ParameterIn.HEADER, description = "Bearer access token", required = false)
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        return ResponseEntity.ok(authService.verifyPhone(request, authHeader));
+    }
+
+    @Operation(
+            summary = "Resend phone SMS verification code",
+            description = "Resends an SMS verification code to the user's registered phone number.",
+            security = @SecurityRequirement(name = "BearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "SMS verification code resent"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - invalid access token")
+    })
+    @PostMapping("/phone/resend-code")
+    public ResponseEntity<MessageResponseDto> resendPhoneVerificationCode(
+            @Parameter(name = "Authorization", in = ParameterIn.HEADER, description = "Bearer access token", required = false)
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(required = false) String accessToken) {
+        return ResponseEntity.ok(authService.resendPhoneVerificationCode(accessToken, authHeader));
     }
 
     @Operation(

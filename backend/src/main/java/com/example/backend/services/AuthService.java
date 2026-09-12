@@ -6,14 +6,15 @@ import com.example.backend.dtos.UserResponseDto;
 import com.example.backend.dtos.auth.AuthResponseDto;
 import com.example.backend.dtos.auth.ChangePasswordRequestDto;
 import com.example.backend.dtos.auth.ConfirmForgotPasswordRequestDto;
+import com.example.backend.dtos.auth.ConfirmPhoneRequestDto;
 import com.example.backend.dtos.auth.ConfirmSignUpRequestDto;
 import com.example.backend.dtos.auth.ForgotPasswordRequestDto;
 import com.example.backend.dtos.auth.LoginRequestDto;
 import com.example.backend.dtos.auth.MessageResponseDto;
+import com.example.backend.dtos.auth.PhoneVerificationRequestDto;
 import com.example.backend.dtos.auth.RefreshTokenRequestDto;
 import com.example.backend.dtos.auth.RegisterRequestDto;
 import com.example.backend.dtos.auth.RegisterResponseDto;
-import com.example.backend.exceptions.ResourceNotFoundException;
 import com.example.backend.models.User;
 import com.example.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.Authenticat
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.UpdateUserAttributesResponse;
 
 import java.util.Map;
 import java.util.Optional;
@@ -50,13 +52,14 @@ public class AuthService {
         // A unique non-email username (UUID) is generated and email is linked as an alias attribute.
         String cognitoUsername = UUID.randomUUID().toString();
 
+        // Phone number is input and verified separately via SMS, so not passed to Cognito at signup
         SignUpResponse signUpResponse = cognitoService.signUp(
                 cognitoUsername,
                 request.getEmail(),
                 request.getPassword(),
                 request.getName(),
                 request.getSurname(),
-                request.getPhoneNumber()
+                null
         );
 
         User user = User.builder()
@@ -66,6 +69,7 @@ public class AuthService {
                 .name(request.getName())
                 .surname(request.getSurname())
                 .phoneNumber(request.getPhoneNumber())
+                .isPhoneVerified(false)
                 .coins(0)
                 .isDeleted(false)
                 .isOwner(request.getIsOwner() != null ? request.getIsOwner() : false)
@@ -189,6 +193,61 @@ public class AuthService {
     }
 
     @Transactional
+    public MessageResponseDto requestPhoneVerification(PhoneVerificationRequestDto request, String authHeader) {
+        String accessToken = resolveAccessToken(request.getAccessToken(), authHeader);
+        String formattedPhone = cognitoService.formatPhoneNumber(request.getPhoneNumber());
+
+        UpdateUserAttributesResponse updateResponse = cognitoService.updatePhoneNumber(accessToken, formattedPhone);
+
+        if (updateResponse.codeDeliveryDetailsList() == null || updateResponse.codeDeliveryDetailsList().isEmpty()) {
+            cognitoService.sendPhoneVerificationCode(accessToken);
+        }
+
+        User user = getUserByAccessToken(accessToken);
+        if (user != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+            user.setIsPhoneVerified(false);
+            userRepository.save(user);
+        }
+
+        return MessageResponseDto.builder()
+                .message("Verification SMS sent to " + formattedPhone + ". Please verify with the code received.")
+                .success(true)
+                .build();
+    }
+
+    @Transactional
+    public MessageResponseDto verifyPhone(ConfirmPhoneRequestDto request, String authHeader) {
+        String accessToken = resolveAccessToken(request.getAccessToken(), authHeader);
+
+        cognitoService.verifyPhoneNumber(accessToken, request.getCode());
+
+        User user = getUserByAccessToken(accessToken);
+        if (user != null) {
+            if (request.getPhoneNumber() != null) {
+                user.setPhoneNumber(request.getPhoneNumber());
+            }
+            user.setIsPhoneVerified(true);
+            userRepository.save(user);
+        }
+
+        return MessageResponseDto.builder()
+                .message("Phone number verified successfully via SMS.")
+                .success(true)
+                .build();
+    }
+
+    public MessageResponseDto resendPhoneVerificationCode(String tokenFromBody, String authHeader) {
+        String accessToken = resolveAccessToken(tokenFromBody, authHeader);
+        cognitoService.sendPhoneVerificationCode(accessToken);
+
+        return MessageResponseDto.builder()
+                .message("SMS verification code resent to your registered phone number.")
+                .success(true)
+                .build();
+    }
+
+    @Transactional
     public UserResponseDto getCurrentUser(String authHeader) {
         String token = extractBearerToken(authHeader);
         GetUserResponse userResponse = cognitoService.getUser(token);
@@ -226,6 +285,8 @@ public class AuthService {
                 phone = 0;
             }
 
+            boolean phoneVerified = Boolean.parseBoolean(attributes.getOrDefault("phone_number_verified", "false"));
+
             User newUser = User.builder()
                     .email(email != null ? email : userResponse.username())
                     .cognitoSub(sub)
@@ -233,6 +294,7 @@ public class AuthService {
                     .name(attributes.getOrDefault("name", "User"))
                     .surname(attributes.getOrDefault("family_name", "Cognito"))
                     .phoneNumber(phone)
+                    .isPhoneVerified(phoneVerified)
                     .coins(0)
                     .isDeleted(false)
                     .isOwner(false)
@@ -251,6 +313,54 @@ public class AuthService {
                 .message("Logged out successfully from all devices.")
                 .success(true)
                 .build();
+    }
+
+    private User getUserByAccessToken(String accessToken) {
+        try {
+            GetUserResponse userResponse = cognitoService.getUser(accessToken);
+            String sub = userResponse.userAttributes().stream()
+                    .filter(attr -> "sub".equals(attr.name()))
+                    .map(AttributeType::value)
+                    .findFirst()
+                    .orElse(null);
+
+            if (sub != null) {
+                Optional<User> user = userRepository.findByCognitoSub(sub);
+                if (user.isPresent()) {
+                    return user.get();
+                }
+            }
+
+            String email = userResponse.userAttributes().stream()
+                    .filter(attr -> "email".equals(attr.name()))
+                    .map(AttributeType::value)
+                    .findFirst()
+                    .orElse(null);
+
+            if (email != null) {
+                Optional<User> user = userRepository.findByEmail(email);
+                if (user.isPresent()) {
+                    return user.get();
+                }
+            }
+
+            if (userResponse.username() != null) {
+                return userRepository.findByCognitoUsername(userResponse.username()).orElse(null);
+            }
+        } catch (Exception e) {
+            log.warn("Could not retrieve user by access token: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    private String resolveAccessToken(String tokenFromBody, String authHeader) {
+        if (tokenFromBody != null && !tokenFromBody.isBlank()) {
+            return tokenFromBody.trim();
+        }
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7).trim();
+        }
+        throw new IllegalArgumentException("Cognito access token must be provided via Bearer Authorization header or request body");
     }
 
     private String resolveCognitoUsername(String email) {
@@ -290,7 +400,7 @@ public class AuthService {
             Map<String, String> attributes = userResponse.userAttributes().stream()
                     .collect(Collectors.toMap(AttributeType::name, AttributeType::value, (k1, k2) -> k1));
 
-            Integer phone = 0;
+            Integer phone = null;
             if (attributes.containsKey("phone_number")) {
                 try {
                     String clean = attributes.get("phone_number").replaceAll("[^0-9]", "");
@@ -302,6 +412,8 @@ public class AuthService {
                 }
             }
 
+            boolean phoneVerified = Boolean.parseBoolean(attributes.getOrDefault("phone_number_verified", "false"));
+
             User newUser = User.builder()
                     .email(email)
                     .cognitoSub(sub)
@@ -309,6 +421,7 @@ public class AuthService {
                     .name(attributes.getOrDefault("name", "User"))
                     .surname(attributes.getOrDefault("family_name", "Cognito"))
                     .phoneNumber(phone)
+                    .isPhoneVerified(phoneVerified)
                     .coins(0)
                     .isDeleted(false)
                     .isOwner(false)
@@ -322,7 +435,8 @@ public class AuthService {
                     .cognitoSub(sub)
                     .name("User")
                     .surname("Cognito")
-                    .phoneNumber(0)
+                    .phoneNumber(null)
+                    .isPhoneVerified(false)
                     .coins(0)
                     .isDeleted(false)
                     .isOwner(false)

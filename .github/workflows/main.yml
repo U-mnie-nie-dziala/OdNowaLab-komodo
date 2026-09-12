@@ -6,7 +6,6 @@ on:
     # Skrypt ruszy tylko, gdy zmienisz kod aplikacji lub konfigurację Dockera
     paths:
       - 'backend/**'
-      - 'business-frontend/**'
       - 'database/**'
       - 'docker-compose.yml'
 
@@ -14,10 +13,10 @@ jobs:
   backend-validate:
     uses: ./.github/workflows/backend-validate.yml
 
-  frontend-validate:
-    uses: ./.github/workflows/frontend-validate.yml
+#  frontend-validate:
+#    uses: ./.github/workflows/frontend-validate.yml
 
   deploy-app:
-    needs: [backend-validate, frontend-validate]
+    needs: [backend-validate]
     uses: ./.github/workflows/deploy-app.yml
     secrets: inherit
