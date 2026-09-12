@@ -13,30 +13,30 @@ export function AuthShell({
 }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-[1fr_1.1fr]">
-      <aside className="relative hidden overflow-hidden bg-gradient-to-br from-brand-700 to-brand-900 p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full bg-coin-400/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-10 h-80 w-80 rounded-full bg-brand-400/20 blur-3xl" />
+      <aside className="relative hidden overflow-hidden border-r-2 border-[var(--ink)] bg-brand-600 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 bg-lav-200/20" />
+        <div className="pointer-events-none absolute -bottom-12 -left-8 h-64 w-64 bg-brand-900/30" />
 
         <Link href="/" className="relative inline-flex items-center gap-2.5">
           <LogoMark className="h-10 w-10" />
           <span className="flex flex-col leading-none">
-            <span className="text-[15px] font-extrabold tracking-tight">
+            <span className="font-display text-[15px] font-bold tracking-tight">
               Wołomiński
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-coin-300">
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-lav-200">
               Program Partnerski
             </span>
           </span>
         </Link>
 
         <div className="relative">
-          <h2 className="max-w-md text-3xl font-extrabold leading-tight">
+          <h2 className="max-w-md text-3xl font-bold leading-tight">
             Zbieraj lokalną walutę Wołomina za codzienne zakupy
           </h2>
           <ul className="mt-8 space-y-3.5">
             {bullets.map((b) => (
               <li key={b} className="flex items-start gap-3 text-brand-50">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-coin-400 text-brand-900">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center bg-[var(--ink)] text-white">
                   <CheckIcon className="h-3.5 w-3.5" strokeWidth={3} />
                 </span>
                 <span className="text-[15px]">{b}</span>

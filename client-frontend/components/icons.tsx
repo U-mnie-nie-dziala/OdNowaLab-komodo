@@ -38,11 +38,36 @@ export const ScanIcon = (p: IconProps) => (
   </Base>
 );
 
-export const CoinIcon = (p: IconProps) => (
-  <Base {...p}>
-    <circle cx="12" cy="12" r="8" />
-    <path d="M9.5 9.5 11 15l1-3 1 3 1.5-5.5" />
-  </Base>
+// Moneta Wołomińska: złota moneta z literą „W" (spójna z logo aplikacji).
+export const CoinIcon = ({ className, ...props }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...props}>
+    <circle cx="12" cy="12" r="10.5" fill="#FDBB13" />
+    <circle
+      cx="12"
+      cy="12"
+      r="10.5"
+      fill="none"
+      stroke="#C8860B"
+      strokeWidth="1.6"
+    />
+    <circle
+      cx="12"
+      cy="12"
+      r="8.1"
+      fill="none"
+      stroke="#ffffff"
+      strokeOpacity="0.4"
+      strokeWidth="1"
+    />
+    <path
+      d="M6.4 7.9 L9.4 16.4 L12 10.8 L14.6 16.4 L17.6 7.9"
+      fill="none"
+      stroke="#7a4e00"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
 );
 
 export const StoreIcon = (p: IconProps) => (

@@ -37,21 +37,17 @@ export default async function HomePage() {
 
 function Hero({ signedIn }: { signedIn: boolean }) {
   return (
-    <section className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-brand-200/50 blur-3xl" />
-        <div className="absolute -right-16 top-16 h-80 w-80 rounded-full bg-coin-300/40 blur-3xl" />
-      </div>
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-8 pt-14 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:pt-20">
+    <section className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-lav-200">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-12 pt-14 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:pt-20">
         <div>
           <span className="badge bg-brand-100 text-brand-800">
             <MapPinIcon className="h-3.5 w-3.5" /> Powiat Wołomiński
           </span>
-          <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight text-brand-900 sm:text-5xl">
+          <h1 className="mt-5 text-5xl font-bold leading-[1.02] tracking-tight text-brand-600 sm:text-6xl">
             Lokalne zakupy,
             <br />
             które się{" "}
-            <span className="relative whitespace-nowrap text-brand-600">
+            <span className="relative whitespace-nowrap text-[var(--ink)]">
               opłacają
               <svg
                 className="absolute -bottom-2 left-0 w-full"
@@ -61,11 +57,11 @@ function Hero({ signedIn }: { signedIn: boolean }) {
                 aria-hidden
               >
                 <path
-                  d="M2 7 Q60 1 100 5 T198 4"
+                  d="M2 7 L198 4"
                   fill="none"
-                  stroke="#f0a91e"
-                  strokeWidth="3"
-                  strokeLinecap="round"
+                  stroke="#2b37e0"
+                  strokeWidth="4"
+                  strokeLinecap="square"
                 />
               </svg>
             </span>
@@ -117,17 +113,19 @@ function HeroCard() {
           <span className="badge bg-brand-100 text-brand-700">Klient</span>
         </div>
 
-        <div className="mt-6 rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 p-5 text-white shadow-lg">
-          <p className="text-xs font-medium uppercase tracking-wider text-brand-100/80">
+        <div className="mt-6 border-2 border-[var(--ink)] bg-brand-600 p-5 text-white">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-100/90">
             Saldo monet
           </p>
           <div className="mt-1 flex items-end gap-2">
-            <span className="text-4xl font-extrabold tabular-nums">1 240</span>
-            <span className="mb-1 font-semibold text-coin-300">WM</span>
+            <span className="font-display text-4xl font-bold tabular-nums">
+              1 240
+            </span>
+            <span className="mb-1 font-bold text-lav-200">WM</span>
           </div>
-          <div className="mt-4 flex items-center gap-2 text-sm text-brand-100">
-            <CoinIcon className="h-4 w-4 text-coin-300" />+{EARN_RATE} monety za
-            każdą wydaną złotówkę
+          <div className="mt-4 flex items-center gap-2 text-sm text-brand-50">
+            <CoinIcon className="h-4 w-4" />+{EARN_RATE} monety za każdą wydaną
+            złotówkę
           </div>
         </div>
 
@@ -146,7 +144,7 @@ function HeroCard() {
         </div>
       </div>
 
-      <div className="absolute -bottom-5 -left-5 hidden rotate-[-6deg] rounded-2xl border border-black/5 bg-white p-3 shadow-lg sm:block">
+      <div className="absolute -bottom-5 -left-5 hidden rotate-[-6deg] border-2 border-[var(--ink)] bg-white p-3 sm:block">
         <LogoMark className="h-10 w-10" />
       </div>
     </div>
@@ -234,10 +232,10 @@ function HowItWorks() {
             <span className="badge absolute right-5 top-5 bg-brand-50 text-brand-600">
               {s.tag}
             </span>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white">
+            <div className="flex h-12 w-12 items-center justify-center bg-brand-600 text-white">
               {s.icon}
             </div>
-            <h3 className="mt-5 text-lg font-bold text-brand-900">{s.title}</h3>
+            <h3 className="mt-5 text-lg font-bold text-brand-600">{s.title}</h3>
             <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-soft)]">
               {s.text}
             </p>
@@ -283,12 +281,12 @@ function Benefits() {
           {benefits.map((b, i) => (
             <div
               key={i}
-              className="rounded-2xl border border-brand-100 bg-brand-50/50 p-6"
+              className="border-2 border-[var(--ink)] bg-lav-100 p-6"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center border-2 border-[var(--ink)] bg-white text-brand-600">
                 {b.icon}
               </div>
-              <h3 className="mt-4 font-bold text-brand-900">{b.title}</h3>
+              <h3 className="mt-4 font-bold text-brand-600">{b.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-[var(--ink-soft)]">
                 {b.text}
               </p>
@@ -316,12 +314,14 @@ function Converter() {
           </p>
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-center">
-              <span className="text-4xl font-extrabold text-brand-900">1 zł</span>
+              <span className="font-display text-4xl font-bold text-brand-600">
+                1 zł
+              </span>
               <span className="text-xs text-slate-400">wydane w sklepie</span>
             </div>
             <ArrowRightIcon className="h-7 w-7 text-brand-400" />
             <div className="flex flex-col items-center">
-              <span className="flex items-baseline gap-1 text-4xl font-extrabold text-coin-600">
+              <span className="flex items-baseline gap-1 font-display text-4xl font-bold text-[var(--ink)]">
                 {EARN_RATE} <CoinIcon className="h-6 w-6" />
               </span>
               <span className="text-xs text-slate-400">Monety Wołomińskie</span>
@@ -334,7 +334,7 @@ function Converter() {
         </div>
 
         <div className="card p-7">
-          <h3 className="text-lg font-bold text-brand-900">
+          <h3 className="text-lg font-bold text-brand-600">
             Progi zniżek za monety
           </h3>
           <p className="mt-1 text-sm text-[var(--ink-soft)]">
@@ -344,15 +344,12 @@ function Converter() {
             {DISCOUNT_TIERS.map((t) => (
               <div
                 key={t.pct}
-                className="flex items-center justify-between rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3"
+                className="flex items-center justify-between border-2 border-[var(--ink)]/12 bg-lav-100 px-4 py-3"
               >
                 <span className="flex items-center gap-2 font-bold text-brand-800">
                   <TagIcon className="h-4 w-4 text-brand-500" /> Zniżka {t.pct}%
                 </span>
-                <span
-                  className="badge bg-coin-100 text-coin-700"
-                  style={{ backgroundColor: "#fdf0d5" }}
-                >
+                <span className="bg-brand-600 px-2.5 py-1 text-xs font-bold text-white">
                   {t.cost} WM
                 </span>
               </div>
@@ -367,10 +364,10 @@ function Converter() {
 function CtaBand({ signedIn }: { signedIn: boolean }) {
   return (
     <section className="mx-auto max-w-6xl px-4 sm:px-6">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 to-brand-900 px-6 py-14 text-center sm:px-12">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-coin-400/20 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-12 -left-8 h-56 w-56 rounded-full bg-brand-400/20 blur-2xl" />
-        <h2 className="relative text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+      <div className="relative overflow-hidden border-2 border-[var(--ink)] bg-brand-600 px-6 py-14 text-center sm:px-12">
+        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 bg-lav-200/20" />
+        <div className="pointer-events-none absolute -bottom-10 -left-6 h-48 w-48 bg-brand-900/30" />
+        <h2 className="relative font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
           Zacznij zbierać Monety Wołomińskie
         </h2>
         <p className="relative mx-auto mt-4 max-w-2xl text-brand-100">
@@ -412,10 +409,10 @@ function SectionHead({
 }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <span className="text-sm font-bold uppercase tracking-wider text-brand-600">
+      <span className="text-xs font-bold uppercase tracking-[0.16em] text-brand-600">
         {eyebrow}
       </span>
-      <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brand-900 sm:text-4xl">
+      <h2 className="mt-2 text-3xl font-bold tracking-tight text-brand-600 sm:text-4xl">
         {title}
       </h2>
       <p className="mt-4 text-[var(--ink-soft)]">{subtitle}</p>

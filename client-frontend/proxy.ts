@@ -10,7 +10,10 @@ export function proxy(request: NextRequest) {
     Boolean(request.cookies.get(ACCESS)?.value) ||
     Boolean(request.cookies.get(REFRESH)?.value);
 
-  if (pathname.startsWith("/dashboard") && !hasSession) {
+  if (
+    (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) &&
+    !hasSession
+  ) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);

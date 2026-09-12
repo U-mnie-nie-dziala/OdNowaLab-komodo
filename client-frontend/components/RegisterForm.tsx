@@ -14,7 +14,7 @@ export function RegisterForm() {
 
   return (
     <>
-      <h1 className="text-2xl font-extrabold tracking-tight text-brand-900">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-brand-600">
         Załóż konto klienta
       </h1>
       <p className="mt-1.5 text-sm text-[var(--ink-soft)]">
