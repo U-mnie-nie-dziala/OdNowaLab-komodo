@@ -32,7 +32,7 @@ variable "public_ssh_key" {
   type        = string
 }
 
-# Wspólny klucz SSH dla obu maszyn
+# Wspólny klucz SSH dla maszyn
 resource "aws_key_pair" "deployer_key" {
   key_name   = "hackathon-deploy-key"
   public_key = var.public_ssh_key
@@ -96,10 +96,9 @@ resource "aws_instance" "hackathon_server" {
 }
 
 # ==========================================
-# 2. KONFIGURACJA FRONTENDU (NOWA)
+# 2. KONFIGURACJA FRONTENDU BIZNESOWEGO
 # ==========================================
 
-# Zapora dla frontendu - otwiera port 80 (HTTP) i 22 (SSH)
 resource "aws_security_group" "frontend_sg" {
   name        = "hackathon-frontend-sg"
 
@@ -127,15 +126,13 @@ resource "aws_security_group" "frontend_sg" {
   }
 }
 
-# Maszyna EC2 dla frontendu
 resource "aws_instance" "frontend_server" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.medium" # Pozostawiłem medium, żeby budowanie w Node.js (npm run build) nie wywaliło braku pamięci
+  instance_type = "t3.medium"
 
   key_name               = aws_key_pair.deployer_key.key_name
   vpc_security_group_ids = [aws_security_group.frontend_sg.id]
 
-  # Ten sam skrypt instalujący Dockera
   user_data = <<-EOF
               #!/bin/bash
               apt-get update -y
@@ -152,12 +149,70 @@ resource "aws_instance" "frontend_server" {
               EOF
 
   tags = {
-    Name = "Hackathon-Frontend-Server"
+    Name = "Hackathon-Business-Frontend-Server"
   }
 }
 
 # ==========================================
-# 3. ZASOBY AWS (SNS i Cognito)
+# 3. KONFIGURACJA FRONTENDU KLIENCKIEGO (NOWA)
+# ==========================================
+
+resource "aws_security_group" "client_frontend_sg" {
+  name        = "hackathon-client-frontend-sg"
+
+  ingress {
+    description = "Allow HTTP for React/Nginx (Client)"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow SSH access (Client)"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "client_frontend_server" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.medium"
+
+  key_name               = aws_key_pair.deployer_key.key_name
+  vpc_security_group_ids = [aws_security_group.client_frontend_sg.id]
+
+  user_data = <<-EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install -y ca-certificates curl git
+              install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+              chmod a+r /etc/apt/keyrings/docker.asc
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+              apt-get update -y
+              apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              usermod -aG docker ubuntu
+              systemctl enable docker
+              systemctl start docker
+              EOF
+
+  tags = {
+    Name = "Hackathon-Client-Frontend-Server"
+  }
+}
+
+# ==========================================
+# 4. ZASOBY AWS (SNS i Cognito)
 # ==========================================
 
 resource "aws_sns_sms_preferences" "sms_settings" {
@@ -192,7 +247,7 @@ resource "aws_cognito_user_pool_client" "app_client" {
 }
 
 # ==========================================
-# 4. OUTPUTY
+# 5. OUTPUTY
 # ==========================================
 
 output "backend_public_ip" {
@@ -201,10 +256,14 @@ output "backend_public_ip" {
 }
 
 output "frontend_public_ip" {
-  description = "Publiczny adres IP serwera FRONTENDOWEGO"
+  description = "Publiczny adres IP serwera FRONTENDOWEGO (Biznes)"
   value       = aws_instance.frontend_server.public_ip
 }
 
+output "client_frontend_public_ip" {
+  description = "Publiczny adres IP serwera FRONTENDOWEGO (Klient)"
+  value       = aws_instance.client_frontend_server.public_ip
+}
 output "cognito_user_pool_id" {
   value = aws_cognito_user_pool.app_pool.id
 }
