@@ -1,6 +1,7 @@
 package com.example.backend.dtos;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
@@ -24,7 +25,8 @@ public class CoinAdditionRequestDto {
     private Integer companyId;
 
     @NotNull(message = "Coin amount is required")
-    @Schema(description = "Amount of coins to add", example = "50")
+    @Min(value = 1, message = "Coin amount must be at least 1")
+    @Schema(description = "Amount of coins to add (must be at least 1)", example = "50", minimum = "1")
     private Integer coinAmount;
 
     @NotNull(message = "Date is required")
