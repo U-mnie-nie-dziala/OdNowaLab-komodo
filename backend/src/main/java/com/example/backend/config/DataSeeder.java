@@ -245,7 +245,6 @@ public class DataSeeder implements CommandLineRunner {
 
         Transaction t4 = Transaction.builder()
                 .user(userZofia)
-                .service(herbataZiolowa)
                 .date(LocalDate.of(2026, 9, 7))
                 .build();
 
