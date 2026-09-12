@@ -12,8 +12,6 @@ terraform {
   }
 }
 
-
-
 provider "aws" {
   region = "eu-central-1"
 }
@@ -34,22 +32,18 @@ variable "public_ssh_key" {
   type        = string
 }
 
-# Użycie zmiennej zamiast wklejania klucza
+# Wspólny klucz SSH dla obu maszyn
 resource "aws_key_pair" "deployer_key" {
   key_name   = "hackathon-deploy-key"
   public_key = var.public_ssh_key
 }
 
-# Zapora sieciowa przepuszczająca ruch HTTP (80) i SSH (22)
+# ==========================================
+# 1. KONFIGURACJA BACKENDU (Istniejąca)
+# ==========================================
+
 resource "aws_security_group" "hackathon_sg" {
   name        = "hackathon-web-sg"
-
-  # ingress {
-  #   from_port   = 80
-  #   to_port     = 80
-  #   protocol    = "tcp"
-  #   cidr_blocks = ["0.0.0.0/0"]
-  # }
 
   ingress {
     description = "Allow Spring Boot backend traffic"
@@ -74,16 +68,13 @@ resource "aws_security_group" "hackathon_sg" {
   }
 }
 
-# Konfiguracja serwera EC2
 resource "aws_instance" "hackathon_server" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.medium" # Uciągnie kompilację Javy i Reacta
+  instance_type = "t3.medium"
 
-  # Podpięcie klucza SSH i zapory
   key_name               = aws_key_pair.deployer_key.key_name
   vpc_security_group_ids = [aws_security_group.hackathon_sg.id]
 
-  # Skrypt startowy instalujący Dockera i Gita
   user_data = <<-EOF
               #!/bin/bash
               apt-get update -y
@@ -100,26 +91,82 @@ resource "aws_instance" "hackathon_server" {
               EOF
 
   tags = {
-    Name = "Hackathon-Monorepo-Server"
+    Name = "Hackathon-Backend-Server"
   }
 }
 
-# Wyświetla IP po zakończeniu działania Terraforma
-output "public_ip" {
-  description = "Publiczny adres IP serwera"
-  value       = aws_instance.hackathon_server.public_ip
+# ==========================================
+# 2. KONFIGURACJA FRONTENDU (NOWA)
+# ==========================================
+
+# Zapora dla frontendu - otwiera port 80 (HTTP) i 22 (SSH)
+resource "aws_security_group" "frontend_sg" {
+  name        = "hackathon-frontend-sg"
+
+  ingress {
+    description = "Allow HTTP for React/Nginx"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow SSH access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
+
+# Maszyna EC2 dla frontendu
+resource "aws_instance" "frontend_server" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.medium" # Pozostawiłem medium, żeby budowanie w Node.js (npm run build) nie wywaliło braku pamięci
+
+  key_name               = aws_key_pair.deployer_key.key_name
+  vpc_security_group_ids = [aws_security_group.frontend_sg.id]
+
+  # Ten sam skrypt instalujący Dockera
+  user_data = <<-EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install -y ca-certificates curl git
+              install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+              chmod a+r /etc/apt/keyrings/docker.asc
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+              apt-get update -y
+              apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              usermod -aG docker ubuntu
+              systemctl enable docker
+              systemctl start docker
+              EOF
+
+  tags = {
+    Name = "Hackathon-Frontend-Server"
+  }
+}
+
+# ==========================================
+# 3. ZASOBY AWS (SNS i Cognito)
+# ==========================================
 
 resource "aws_sns_sms_preferences" "sms_settings" {
   default_sender_id = "Hackathon"
-  default_sms_type  = "Promotional" # Zmienione na typ promocyjny
+  default_sms_type  = "Promotional"
 }
 
-# Pula użytkowników (baza kont)
 resource "aws_cognito_user_pool" "app_pool" {
   name = "hackathon-user-pool"
-
-  # Logowanie za pomocą adresu e-mail
   alias_attributes = ["email"]
   auto_verified_attributes = ["email"]
 
@@ -132,13 +179,9 @@ resource "aws_cognito_user_pool" "app_pool" {
   }
 }
 
-# Klient dla aplikacji frontendowej (React)
 resource "aws_cognito_user_pool_client" "app_client" {
   name         = "hackathon-react-client"
   user_pool_id = aws_cognito_user_pool.app_pool.id
-
-  # Wyłączamy generowanie tzw. Client Secret, ponieważ aplikacje typu SPA (React)
-  # nie są w stanie go bezpiecznie przechowywać
   generate_secret = false
 
   explicit_auth_flows = [
@@ -148,7 +191,20 @@ resource "aws_cognito_user_pool_client" "app_client" {
   ]
 }
 
-# Wyplucie ID potrzebnych do konfiguracji frontendu i backendu
+# ==========================================
+# 4. OUTPUTY
+# ==========================================
+
+output "backend_public_ip" {
+  description = "Publiczny adres IP serwera BACKENDOWEGO"
+  value       = aws_instance.hackathon_server.public_ip
+}
+
+output "frontend_public_ip" {
+  description = "Publiczny adres IP serwera FRONTENDOWEGO"
+  value       = aws_instance.frontend_server.public_ip
+}
+
 output "cognito_user_pool_id" {
   value = aws_cognito_user_pool.app_pool.id
 }
