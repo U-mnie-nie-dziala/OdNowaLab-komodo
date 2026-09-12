@@ -12,6 +12,7 @@ import type {
   RegisterResponseDto,
   ServiceRequestDto,
   ServiceResponseDto,
+  ConsumeTransactionRequestDto,
   TransactionRequestDto,
   TransactionResponseDto,
   UserRequestDto,
@@ -74,6 +75,31 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+// Zapytanie multipart (upload plików) — bez nagłówka JSON (boundary ustawia przeglądarka).
+async function formRequest<T>(path: string, method: string, formData: FormData): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, { method, body: formData, cache: "no-store" });
+  } catch {
+    throw new ApiError(0, "Nie można połączyć się z serwerem. Sprawdź, czy backend działa.");
+  }
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
+  if (!res.ok) {
+    const body = (data ?? {}) as { message?: string; error?: string };
+    throw new ApiError(res.status, body.message || body.error || `Błąd serwera (${res.status})`);
+  }
+  return data as T;
+}
+
 export const authApi = {
   register: (body: RegisterRequestDto) =>
     request<RegisterResponseDto>("/auth/register", {
@@ -120,6 +146,20 @@ export const companiesApi = {
     request<CompanyResponseDto>("/companies", { method: "POST", body: JSON.stringify(body) }),
   update: (id: number, body: CompanyRequestDto) =>
     request<CompanyResponseDto>(`/companies/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  // Zdjęcie sklepu (JPG/PNG/GIF/WEBP)
+  uploadImage: (id: number, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return formRequest<CompanyResponseDto>(`/companies/${id}/image`, "POST", fd);
+  },
+  updateImage: (id: number, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return formRequest<CompanyResponseDto>(`/companies/${id}/image`, "PUT", fd);
+  },
+  deleteImage: (id: number) =>
+    request<void>(`/companies/${id}/image`, { method: "DELETE" }),
+  imageUrl: (id: number) => `/api/companies/${id}/image`,
 };
 
 export const servicesApi = {
@@ -150,8 +190,46 @@ export const transactionsApi = {
     request<TransactionResponseDto[]>(`/transactions?serviceId=${serviceId}`),
   byUser: (userId: number) =>
     request<TransactionResponseDto[]>(`/transactions?userId=${userId}`),
+  byProvider: (
+    providerId: number,
+    opts?: { userId?: number; isValid?: boolean; isConsumed?: boolean }
+  ) => {
+    const q = new URLSearchParams();
+    if (opts?.userId != null) q.set("userId", String(opts.userId));
+    if (opts?.isValid != null) q.set("isValid", String(opts.isValid));
+    if (opts?.isConsumed != null) q.set("isConsumed", String(opts.isConsumed));
+    const qs = q.toString();
+    return request<TransactionResponseDto[]>(
+      `/transactions/provider/${providerId}${qs ? `?${qs}` : ""}`
+    );
+  },
+  byUserAndProvider: (
+    userId: number,
+    providerId: number,
+    opts?: { isValid?: boolean; isConsumed?: boolean }
+  ) => {
+    const q = new URLSearchParams();
+    if (opts?.isValid != null) q.set("isValid", String(opts.isValid));
+    if (opts?.isConsumed != null) q.set("isConsumed", String(opts.isConsumed));
+    const qs = q.toString();
+    return request<TransactionResponseDto[]>(
+      `/transactions/user/${userId}/provider/${providerId}${qs ? `?${qs}` : ""}`
+    );
+  },
   create: (body: TransactionRequestDto) =>
     request<TransactionResponseDto>("/transactions", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  consume: (id: number, providerId?: number) => {
+    const qs =
+      providerId != null ? `?providerId=${providerId}` : "";
+    return request<TransactionResponseDto>(`/transactions/${id}/consume${qs}`, {
+      method: "POST",
+    });
+  },
+  consumeWithBody: (body: ConsumeTransactionRequestDto) =>
+    request<TransactionResponseDto>("/transactions/consume", {
       method: "POST",
       body: JSON.stringify(body),
     }),
