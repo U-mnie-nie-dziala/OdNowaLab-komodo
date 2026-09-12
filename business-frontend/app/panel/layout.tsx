@@ -13,12 +13,14 @@ import {
   StoreIcon,
   MenuIcon,
   CloseIcon,
+  UserIcon,
 } from "@/components/icons";
 
 const NAV = [
   { href: "/panel", label: "Statystyki", icon: ChartIcon, exact: true },
-  { href: "/panel/kasjer", label: "Kasjer", icon: ScanIcon },
+  { href: "/panel/kasjer", label: "Kasa", icon: ScanIcon },
   { href: "/panel/oferty", label: "Zniżki", icon: TagIcon },
+  { href: "/panel/konto", label: "Moje konto", icon: UserIcon },
 ];
 
 export default function PanelLayout({ children }: { children: ReactNode }) {

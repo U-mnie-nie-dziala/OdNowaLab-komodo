@@ -19,15 +19,11 @@ interface FormState {
   nip: string;
   address: string;
   description: string;
-  locationX: string;
-  locationY: string;
-  isInRevitalizationZone: boolean;
 }
 
 const EMPTY: FormState = {
   name: "", surname: "", email: "", phone: "", password: "", confirm: "",
   companyName: "", nip: "", address: "", description: "",
-  locationX: "52.34", locationY: "21.23", isInRevitalizationZone: false,
 };
 
 const STEP_LABELS = ["Właściciel", "Sklep", "Potwierdź"];
@@ -75,10 +71,6 @@ export default function RegisterPage() {
     if (!form.address.trim()) e.address = "Podaj adres sklepu.";
     if (!form.description.trim()) e.description = "Dodaj krótki opis.";
     else if (form.description.length > 200) e.description = "Maks. 200 znaków.";
-    const lx = Number(form.locationX);
-    const ly = Number(form.locationY);
-    if (!(lx > 0 && lx < 100)) e.locationX = "Wartość 0–99,99.";
-    if (!(ly > 0 && ly < 100)) e.locationY = "Wartość 0–99,99.";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -110,9 +102,6 @@ export default function RegisterPage() {
         nip: form.nip.replace(/\D/g, ""),
         address: form.address.trim(),
         description: form.description.trim(),
-        locationX: Number(Number(form.locationX).toFixed(2)),
-        locationY: Number(Number(form.locationY).toFixed(2)),
-        isInRevitalizationZone: form.isInRevitalizationZone,
       });
       if (isConfirmed) {
         await login(form.email, form.password);
@@ -246,27 +235,6 @@ export default function RegisterPage() {
               onChange={(e) => set("description", e.target.value)}
               placeholder="Krótko opisz, czym zajmuje się Twój sklep…" />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Współrzędna X" error={errors.locationX}>
-              <input inputMode="decimal" className={inp(errors.locationX)} value={form.locationX}
-                onChange={(e) => set("locationX", e.target.value)} placeholder="52.34" />
-            </Field>
-            <Field label="Współrzędna Y" error={errors.locationY}>
-              <input inputMode="decimal" className={inp(errors.locationY)} value={form.locationY}
-                onChange={(e) => set("locationY", e.target.value)} placeholder="21.23" />
-            </Field>
-          </div>
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/40 p-4">
-            <input type="checkbox" checked={form.isInRevitalizationZone}
-              onChange={(e) => set("isInRevitalizationZone", e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-brand-600" />
-            <span className="text-sm text-[var(--ink)]">
-              Mój sklep znajduje się w <strong>strefie rewitalizacji</strong>
-              <span className="block text-xs text-[var(--ink-soft)]">
-                Placówki w strefie mogą realizować wymianę monet na zniżki.
-              </span>
-            </span>
-          </label>
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={() => setStep(1)} className="btn-outline btn-lg flex-1">

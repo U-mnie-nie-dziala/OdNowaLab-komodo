@@ -1,22 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { coinAdditionsApi, transactionsApi, usersApi } from "@/lib/api";
-import type { CoinAdditionResponseDto, UserResponseDto } from "@/lib/types";
-import { ensureGlobalDiscountTiers, type DiscountTier } from "@/lib/discounts";
-import { ActivityBars, ShareBar, type DayPoint } from "@/components/Charts";
+import type {
+  CoinAdditionResponseDto,
+  TransactionResponseDto,
+  UserResponseDto,
+} from "@/lib/types";
+import { ensureCompanyDiscountTiers, type DiscountTier } from "@/lib/discounts";
+import { ShareBar } from "@/components/Charts";
 import { PageHeader } from "@/components/PageHeader";
 import {
   CoinIcon,
   TrendUpIcon,
   ScanIcon,
   UsersIcon,
+  TagIcon,
+  CheckCircleIcon,
   AlertIcon,
 } from "@/components/icons";
 import {
   EARN_RATE,
+  discountPctFromName,
   formatCoins,
   formatDate,
   formatNumber,
@@ -29,6 +35,7 @@ export default function StatsPage() {
 
   const [additions, setAdditions] = useState<CoinAdditionResponseDto[]>([]);
   const [tierStats, setTierStats] = useState<{ tier: DiscountTier; count: number }[]>([]);
+  const [vouchers, setVouchers] = useState<TransactionResponseDto[]>([]);
   const [users, setUsers] = useState<Record<number, UserResponseDto>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,17 +47,19 @@ export default function StatsPage() {
       const [adds, allUsers, tiers] = await Promise.all([
         coinAdditionsApi.byCompany(companyId),
         usersApi.list(),
-        ensureGlobalDiscountTiers(),
+        ensureCompanyDiscountTiers(companyId),
       ]);
 
-      const txLists = await Promise.all(
-        tiers.map((t) => transactionsApi.byService(t.serviceId))
-      );
-      const tStats = tiers.map((t, i) => ({ tier: t, count: txLists[i].length }));
+      const companyTx = await transactionsApi.byProvider(companyId);
+      const tStats = tiers.map((t) => ({
+        tier: t,
+        count: companyTx.filter((tx) => tx.serviceId === t.serviceId).length,
+      }));
 
       setAdditions(adds);
       setUsers(Object.fromEntries(allUsers.map((u) => [u.id, u])));
       setTierStats(tStats);
+      setVouchers(companyTx);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nie udało się wczytać danych.");
     } finally {
@@ -73,17 +82,6 @@ export default function StatsPage() {
     };
   }, [additions]);
 
-  const chartData = useMemo<DayPoint[]>(() => {
-    const days = lastNDays(14);
-    const earnedBy = new Map<string, number>();
-    additions.forEach((a) => earnedBy.set(a.date, (earnedBy.get(a.date) ?? 0) + a.coinAmount));
-    return days.map((d) => ({
-      label: d.slice(8, 10) + "." + d.slice(5, 7),
-      earned: earnedBy.get(d) ?? 0,
-      spent: 0,
-    }));
-  }, [additions]);
-
   const totalRedemptions = tierStats.reduce((a, t) => a + t.count, 0);
 
   const feed = useMemo(
@@ -92,6 +90,15 @@ export default function StatsPage() {
         .sort((a, b) => (a.date < b.date ? 1 : -1))
         .slice(0, 8),
     [additions]
+  );
+
+  const usedVouchers = useMemo(
+    () =>
+      vouchers
+        .filter((v) => v.isConsumed)
+        .sort((a, b) => (a.date !== b.date ? (a.date < b.date ? 1 : -1) : b.id - a.id))
+        .slice(0, 8),
+    [vouchers]
   );
 
   function nameOf(userId: number) {
@@ -146,21 +153,6 @@ export default function StatsPage() {
             />
           </div>
 
-          <div className="card p-6">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-brand-900">Naliczone monety (ostatnie 14 dni)</h2>
-                <p className="text-sm text-[var(--ink-soft)]">
-                  Monety przyznane klientom Twojego sklepu za zakupy.
-                </p>
-              </div>
-              <Link href="/panel/kasjer" className="btn-outline hidden sm:inline-flex">
-                <ScanIcon className="h-4 w-4" /> Otwórz kasjera
-              </Link>
-            </div>
-            <ActivityBars data={chartData} showSpent={false} earnedLabel="Naliczone monety" />
-          </div>
-
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="card p-6">
               <h2 className="text-lg font-bold text-brand-900">Popularność zniżek</h2>
@@ -208,25 +200,45 @@ export default function StatsPage() {
               </div>
             </div>
           </div>
+
+          <div className="card p-6">
+            <h2 className="text-lg font-bold text-brand-900">Ostatnio wykorzystane bony</h2>
+            <p className="text-sm text-[var(--ink-soft)]">
+              Bony zniżkowe zrealizowane (zużyte) w Twoim sklepie.
+            </p>
+            <div className="mt-4 divide-y divide-slate-100">
+              {usedVouchers.length === 0 && (
+                <EmptyHint text="Żaden bon nie został jeszcze zużyty w Twoim sklepie." />
+              )}
+              {usedVouchers.map((v) => {
+                const pct = discountPctFromName(v.serviceName);
+                return (
+                  <div key={v.id} className="flex items-center gap-3 py-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-brand-600 text-white">
+                      <TagIcon className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-[var(--ink)]">
+                        {nameOf(v.userId)}
+                      </p>
+                      <p className="truncate text-xs text-[var(--ink-soft)]">
+                        {pct != null ? `Zniżka ${pct}%` : v.serviceName} · {formatDate(v.date)}
+                      </p>
+                    </div>
+                    <span className="badge shrink-0 gap-1 border-brand-600 text-brand-700">
+                      <CheckCircleIcon className="h-3.5 w-3.5" /> Zużyty
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-
-function lastNDays(n: number): string[] {
-  const arr: string[] = [];
-  const d = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const x = new Date(d);
-    x.setDate(d.getDate() - i);
-    const mm = String(x.getMonth() + 1).padStart(2, "0");
-    const dd = String(x.getDate()).padStart(2, "0");
-    arr.push(`${x.getFullYear()}-${mm}-${dd}`);
-  }
-  return arr;
-}
 
 function StatCard({
   icon, label, value, sub, tone,
@@ -242,10 +254,9 @@ function StatCard({
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-[var(--ink-soft)]">{label}</span>
         <span
-          className={`flex h-9 w-9 items-center justify-center rounded-xl ${
-            tone === "coin" ? "text-coin-600" : "bg-brand-100 text-brand-600"
+          className={`flex h-9 w-9 items-center justify-center ${
+            tone === "coin" ? "bg-brand-600 text-white" : "bg-brand-600 text-white"
           }`}
-          style={tone === "coin" ? { backgroundColor: "#fdf0d5" } : undefined}
         >
           {icon}
         </span>
@@ -268,7 +279,6 @@ function SkeletonStats() {
           <div key={i} className="card h-28 animate-pulse bg-slate-100/60" />
         ))}
       </div>
-      <div className="card h-72 animate-pulse bg-slate-100/60" />
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card h-64 animate-pulse bg-slate-100/60" />
         <div className="card h-64 animate-pulse bg-slate-100/60" />
