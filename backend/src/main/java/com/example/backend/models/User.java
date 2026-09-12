@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -16,7 +17,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "\"User\"")
+@Table(name = "\"user\"")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,31 +30,39 @@ public class User {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @NotBlank
-    @Size(max = 20)
+    @Column(name = "email", unique = true)
+    @Email(message = "Invalid email format")
+    private String email;
+
+    @Column(name = "cognito_sub", unique = true)
+    private String cognitoSub;
+
+    @Column(name = "cognito_username", unique = true)
+    private String cognitoUsername;
+
+    @NotBlank(message = "Name is required")
+    @Size(max = 20, message = "Name must not exceed 20 characters")
     @Column(name = "name", nullable = false, length = 20)
     private String name;
 
-    @NotNull
+    @NotNull(message = "Coins is required")
     @Column(name = "coins", nullable = false)
     private Integer coins;
 
-    @NotBlank
-    @Size(max = 20)
+    @NotBlank(message = "Surname is required")
+    @Size(max = 20, message = "Surname must not exceed 20 characters")
     @Column(name = "surname", nullable = false, length = 20)
     private String surname;
 
-    @NotNull
+    @NotNull(message = "PhoneNumber is required")
     @Column(name = "phonenumber", nullable = false)
     private Integer phoneNumber;
 
-    @NotNull
-    @Column(name = "isdeleted", nullable = false)
     @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 
-    @NotNull
-    @Column(name = "isowner", nullable = false)
     @Builder.Default
+    @Column(name = "is_owner", nullable = false)
     private Boolean isOwner = false;
 }
