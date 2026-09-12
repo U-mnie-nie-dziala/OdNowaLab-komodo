@@ -1,0 +1,40 @@
+name: Terraform Plan & Apply
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'terraform/**' # Skrypt uruchomi się automatycznie, gdy zmienisz kod w folderze terraform
+
+jobs:
+  terraform-deploy:
+    runs-on: ubuntu-latest
+
+    # Przypięcie domyślnego katalogu
+    defaults:
+      run:
+        working-directory: ./terraform
+
+    # Globalne zmienne dla całego procesu Terraforma
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: 'eu-central-1'
+      TF_VAR_public_ssh_key: ${{ secrets.EC2_SSH_PUBLIC_KEY }}
+
+    steps:
+      - name: Pobranie repozytorium
+        uses: actions/checkout@v5
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve tfplan

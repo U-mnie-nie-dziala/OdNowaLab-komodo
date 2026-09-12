@@ -1,0 +1,23 @@
+name: App CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+    # Skrypt ruszy tylko, gdy zmienisz kod aplikacji lub konfigurację Dockera
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'database/**'
+      - 'docker-compose.yml'
+
+jobs:
+  backend-validate:
+    uses: ./.github/workflows/backend-validate.yml
+
+  frontend-validate:
+    uses: ./.github/workflows/frontend-validate.yml
+
+  deploy-app:
+    needs: [backend-validate, frontend-validate]
+    uses: ./.github/workflows/deploy-app.yml
+    secrets: inherit

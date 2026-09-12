@@ -1,0 +1,28 @@
+name: App Deploy
+
+on:
+  workflow_call:
+
+jobs:
+  deploy-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy na serwer EC2 przez SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Jeśli folderu nie ma, klonuje repozytorium używając tokena GH_PAT
+            if [ ! -d "hackathon-aws-terraform-test" ]; then
+              git clone https://${{ secrets.GH_PAT }}@github.com/garnaalpak/hackathon-aws-terraform-test.git
+            fi
+            
+            cd hackathon-aws-terraform-test
+            
+            # Pobiera najnowsze zmiany
+            git pull origin main
+            
+            # Stawia kontenery
+            docker compose up -d --build
