@@ -54,6 +54,85 @@ public class TransactionService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<TransactionResponseDto> getTransactionsByProviderId(Integer providerId) {
+        return getTransactionsByProviderId(providerId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponseDto> getTransactionsByProviderId(Integer providerId, Boolean isValid, Boolean isConsumed) {
+        List<Transaction> transactions;
+        if (isValid != null) {
+            transactions = transactionRepository.findByService_Provider_IdAndIsValid(providerId, isValid);
+        } else if (isConsumed != null) {
+            transactions = transactionRepository.findByService_Provider_IdAndIsConsumed(providerId, isConsumed);
+        } else {
+            transactions = transactionRepository.findByService_Provider_Id(providerId);
+        }
+        return transactions.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponseDto> getTransactionsByUserIdAndProviderId(Integer userId, Integer providerId) {
+        return getTransactionsByUserIdAndProviderId(userId, providerId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponseDto> getTransactionsByUserIdAndProviderId(Integer userId, Integer providerId, Boolean isValid, Boolean isConsumed) {
+        List<Transaction> transactions;
+        if (isValid != null) {
+            transactions = transactionRepository.findByUserIdAndService_Provider_IdAndIsValid(userId, providerId, isValid);
+        } else if (isConsumed != null) {
+            transactions = transactionRepository.findByUserIdAndService_Provider_IdAndIsConsumed(userId, providerId, isConsumed);
+        } else {
+            transactions = transactionRepository.findByUserIdAndService_Provider_Id(userId, providerId);
+        }
+        return transactions.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponseDto> getTransactionsByUserPhoneAndProviderId(Integer phoneNumber, Integer providerId) {
+        return getTransactionsByUserPhoneAndProviderId(phoneNumber, providerId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponseDto> getTransactionsByUserPhoneAndProviderId(Integer phoneNumber, Integer providerId, Boolean isValid, Boolean isConsumed) {
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with phone number: " + phoneNumber));
+        return getTransactionsByUserIdAndProviderId(user.getId(), providerId, isValid, isConsumed);
+    }
+
+    @Transactional
+    public TransactionResponseDto consumeTransaction(Integer id, Integer providerId) {
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + id));
+
+        if (Boolean.FALSE.equals(transaction.getIsValid()) || Boolean.TRUE.equals(transaction.getIsConsumed())) {
+            throw new IllegalStateException("Transaction with id " + id + " has already been consumed");
+        }
+
+        if (providerId != null) {
+            if (transaction.getService() == null || transaction.getService().getProvider() == null
+                    || !providerId.equals(transaction.getService().getProvider().getId())) {
+                throw new IllegalArgumentException("Transaction does not belong to provider with id: " + providerId);
+            }
+        }
+
+        transaction.setIsValid(false);
+        transaction.setIsConsumed(true);
+        Transaction updated = transactionRepository.save(transaction);
+        return mapToResponse(updated);
+    }
+
+    @Transactional
+    public TransactionResponseDto consumeTransaction(Integer id) {
+        return consumeTransaction(id, null);
+    }
+
     @Transactional
     public TransactionResponseDto createTransaction(TransactionRequestDto request) {
         Service service = serviceRepository.findById(request.getServiceId())
@@ -87,6 +166,8 @@ public class TransactionService {
                 .user(user)
                 .service(service)
                 .date(date)
+                .isValid(true)
+                .isConsumed(false)
                 .build();
 
         Transaction saved = transactionRepository.save(transaction);
@@ -119,6 +200,8 @@ public class TransactionService {
                 .user(user)
                 .service(service)
                 .date(date)
+                .isValid(true)
+                .isConsumed(false)
                 .build();
 
         Transaction saved = transactionRepository.save(transaction);
@@ -220,10 +303,30 @@ public class TransactionService {
     }
 
     public TransactionResponseDto mapToResponse(Transaction transaction) {
+        Integer providerId = null;
+        String providerName = null;
+        String serviceName = null;
+        Integer coinCost = null;
+
+        if (transaction.getService() != null) {
+            serviceName = transaction.getService().getName();
+            coinCost = transaction.getService().getCoinCost();
+            if (transaction.getService().getProvider() != null) {
+                providerId = transaction.getService().getProvider().getId();
+                providerName = transaction.getService().getProvider().getName();
+            }
+        }
+
         return TransactionResponseDto.builder()
                 .id(transaction.getId())
                 .userId(transaction.getUser() != null ? transaction.getUser().getId() : null)
                 .serviceId(transaction.getService() != null ? transaction.getService().getId() : null)
+                .providerId(providerId)
+                .providerName(providerName)
+                .serviceName(serviceName)
+                .coinCost(coinCost)
+                .isValid(transaction.getIsValid() != null ? transaction.getIsValid() : true)
+                .isConsumed(transaction.getIsConsumed() != null ? transaction.getIsConsumed() : false)
                 .date(transaction.getDate())
                 .build();
     }
