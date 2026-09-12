@@ -44,4 +44,12 @@ public class Transaction {
     @NotNull
     @Column(name = "date", nullable = false)
     private LocalDate date;
+
+    @Builder.Default
+    @Column(name = "is_valid", nullable = false)
+    private Boolean isValid = true;
+
+    @Builder.Default
+    @Column(name = "is_consumed", nullable = false)
+    private Boolean isConsumed = false;
 }
