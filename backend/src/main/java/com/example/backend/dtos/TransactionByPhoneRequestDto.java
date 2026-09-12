@@ -14,13 +14,11 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Schema(description = "Request payload for creating or updating a transaction")
-public class TransactionRequestDto {
+@Schema(description = "Request payload for creating a transaction by providing the user's phone number")
+public class TransactionByPhoneRequestDto {
 
-    @Schema(description = "ID of the user involved in the transaction (optional if phoneNumber is provided)", example = "1")
-    private Integer userId;
-
-    @Schema(description = "Phone number of the user (alternative to userId)", example = "123456789")
+    @NotNull(message = "Phone number is required")
+    @Schema(description = "Phone number of the user", example = "123456789")
     private Integer phoneNumber;
 
     @NotNull(message = "Service ID is required")

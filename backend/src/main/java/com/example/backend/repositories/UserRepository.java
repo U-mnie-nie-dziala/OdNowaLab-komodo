@@ -19,9 +19,15 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     Optional<User> findByCognitoSub(String cognitoSub);
 
+    Optional<User> findByPhoneNumber(Integer phoneNumber);
+
     boolean existsByEmail(String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.id = :id")
     Optional<User> findByIdWithLock(@Param("id") Integer id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.phoneNumber = :phoneNumber")
+    Optional<User> findByPhoneNumberWithLock(@Param("phoneNumber") Integer phoneNumber);
 }
