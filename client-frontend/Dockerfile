@@ -25,6 +25,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=80
 
+# Server-side fetches in lib/api.ts resolve the backend origin at request time,
+# so the runner needs it too — not just the builder. Overridable at `docker run`.
+ARG BACKEND_ORIGIN=http://localhost:8888
+ENV BACKEND_ORIGIN=$BACKEND_ORIGIN
+
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 
 COPY --from=builder /app/public ./public
