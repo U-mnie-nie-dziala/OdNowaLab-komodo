@@ -151,56 +151,44 @@ public class DataSeeder implements CommandLineRunner {
 
         // 3. Seed Services (both company-provided and municipal/null provider)
         Service kawa = Service.builder()
-                .name("Kawa espresso")
-                .coinCost(10)
+                .name("10%")
+                .coinCost(1600)
                 .provider(kawiarnia)
                 .build();
 
         Service ciastko = Service.builder()
-                .name("Ciastko domowe")
-                .coinCost(15)
+                .name("30%")
+                .coinCost(4800)
                 .provider(kawiarnia)
                 .build();
 
         Service chleb = Service.builder()
-                .name("Chleb żytni")
-                .coinCost(12)
+                .name("50%")
+                .coinCost(8000)
                 .provider(piekarnia)
                 .build();
 
         Service drozdzowka = Service.builder()
-                .name("Drożdżówka")
-                .coinCost(6)
+                .name("100%")
+                .coinCost(16000)
                 .provider(piekarnia)
                 .build();
 
         Service przegladRoweru = Service.builder()
-                .name("Przegląd roweru")
-                .coinCost(50)
+                .name("Bilet do kina")
+                .coinCost(10000)
                 .provider(warsztat)
                 .build();
 
         Service regulacjaHamulcow = Service.builder()
-                .name("Regulacja hamulców")
-                .coinCost(20)
+                .name("Zabójstwo na zlecenie")
+                .coinCost(2137)
                 .provider(warsztat)
-                .build();
-
-        Service herbataZiolowa = Service.builder()
-                .name("Herbata ziołowa")
-                .coinCost(8)
-                .provider(zielarnia)
-                .build();
-
-        Service biletTeatr = Service.builder()
-                .name("Bilet do teatru")
-                .coinCost(40)
-                .provider(null)
                 .build();
 
         serviceRepository.saveAll(List.of(
                 kawa, ciastko, chleb, drozdzowka,
-                przegladRoweru, regulacjaHamulcow, herbataZiolowa, biletTeatr
+                przegladRoweru, regulacjaHamulcow
         ));
         log.info("Seeded {} services.", serviceRepository.count());
 
@@ -257,7 +245,6 @@ public class DataSeeder implements CommandLineRunner {
 
         Transaction t4 = Transaction.builder()
                 .user(userZofia)
-                .service(herbataZiolowa)
                 .date(LocalDate.of(2026, 9, 7))
                 .build();
 
