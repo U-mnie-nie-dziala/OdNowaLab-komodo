@@ -14,7 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useSession } from '@/context/session-context';
 
 export default function OffersScreen() {
-  const { user, adjustCoins } = useSession();
+  const { user, refreshUser } = useSession();
   const [services, setServices] = useState<ServiceDto[] | null>(null);
   const [companiesById, setCompaniesById] = useState<Map<number, CompanyDto>>(new Map());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -45,7 +45,7 @@ export default function OffersScreen() {
         serviceId: service.id,
         date: new Date().toISOString().slice(0, 10),
       });
-      await adjustCoins(-service.coinCost);
+      await refreshUser();
       Alert.alert('Gotowe!', `Wymieniono ${service.coinCost} pkt na: ${service.name}`);
     } catch (error) {
       const message = error instanceof ApiError ? error.message : 'Spróbuj ponownie później.';

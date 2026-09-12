@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Image } from 'expo-image';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet } from 'react-native';
+import MapView, { Marker, Region } from 'react-native-maps';
 
+import { getApiBaseUrl } from '@/api/client';
 import { companiesApi } from '@/api/companies';
 import { servicesApi } from '@/api/services';
 import { CompanyDto, ServiceDto } from '@/api/types';
@@ -15,9 +18,15 @@ export default function BusinessesScreen() {
   const [companies, setCompanies] = useState<CompanyDto[] | null>(null);
   const [servicesByCompany, setServicesByCompany] = useState<Map<number, ServiceDto[]>>(new Map());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [apiBaseUrl, setApiBaseUrl] = useState('');
 
   const load = useCallback(async () => {
-    const [companyList, serviceList] = await Promise.all([companiesApi.getAll(), servicesApi.getAll()]);
+    const [companyList, serviceList, baseUrl] = await Promise.all([
+      companiesApi.getAll(),
+      servicesApi.getAll(),
+      getApiBaseUrl(),
+    ]);
+    setApiBaseUrl(baseUrl);
     const grouped = new Map<number, ServiceDto[]>();
     for (const service of serviceList) {
       if (service.providerId == null) continue;
@@ -41,6 +50,18 @@ export default function BusinessesScreen() {
     setIsRefreshing(false);
   };
 
+  const mapRegion: Region | undefined = useMemo(() => {
+    if (!companies || companies.length === 0) return undefined;
+    const lats = companies.map((c) => c.locationX);
+    const lngs = companies.map((c) => c.locationY);
+    return {
+      latitude: (Math.min(...lats) + Math.max(...lats)) / 2,
+      longitude: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+      latitudeDelta: Math.max(Math.max(...lats) - Math.min(...lats), 0.02) * 1.8,
+      longitudeDelta: Math.max(Math.max(...lngs) - Math.min(...lngs), 0.02) * 1.8,
+    };
+  }, [companies]);
+
   return (
     <Screen refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}>
       <ThemedText type="title" style={styles.title}>
@@ -56,10 +77,34 @@ export default function BusinessesScreen() {
         </ThemedText>
       )}
 
+      {mapRegion && (
+        <Card style={styles.mapCard}>
+          <MapView style={styles.map} initialRegion={mapRegion}>
+            {companies?.map((company) => (
+              <Marker
+                key={company.id}
+                coordinate={{ latitude: company.locationX, longitude: company.locationY }}
+                title={company.name}
+                description={company.isInRevitalizationZone ? 'Strefa rewitalizacji' : 'Poza strefą'}
+                pinColor={company.isInRevitalizationZone ? '#1e8e5a' : '#8a8a8a'}
+              />
+            ))}
+          </MapView>
+        </Card>
+      )}
+
       {companies?.map((company) => {
         const offers = servicesByCompany.get(company.id) ?? [];
         return (
           <Card key={company.id}>
+            {company.picture && (
+              <Image
+                style={styles.companyImage}
+                source={{ uri: `${apiBaseUrl}${company.picture}` }}
+                contentFit="cover"
+                transition={150}
+              />
+            )}
             <ThemedText type="smallBold">{company.name}</ThemedText>
             <Badge
               label={company.isInRevitalizationZone ? 'Strefa rewitalizacji' : 'Poza strefą'}
@@ -92,5 +137,18 @@ const styles = StyleSheet.create({
   },
   offerRow: {
     paddingVertical: Spacing.half,
+  },
+  mapCard: {
+    padding: 0,
+    overflow: 'hidden',
+  },
+  map: {
+    width: '100%',
+    height: 220,
+  },
+  companyImage: {
+    width: '100%',
+    height: 140,
+    borderRadius: Spacing.two,
   },
 });

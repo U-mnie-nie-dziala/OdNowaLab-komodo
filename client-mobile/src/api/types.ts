@@ -1,5 +1,8 @@
 export interface UserDto {
   id: number;
+  email: string | null;
+  cognitoSub: string | null;
+  cognitoUsername: string | null;
   name: string;
   surname: string;
   coins: number;
@@ -9,6 +12,9 @@ export interface UserDto {
 }
 
 export interface UserRequest {
+  email?: string | null;
+  cognitoSub?: string | null;
+  cognitoUsername?: string | null;
   name: string;
   surname: string;
   coins: number;
@@ -25,6 +31,7 @@ export interface CompanyDto {
   description: string;
   ownerId: number;
   isInRevitalizationZone: boolean;
+  picture: string | null;
 }
 
 export interface CompanyRequest {
@@ -34,6 +41,7 @@ export interface CompanyRequest {
   description: string;
   ownerId: number;
   isInRevitalizationZone: boolean;
+  picture?: string | null;
 }
 
 export interface ServiceDto {
