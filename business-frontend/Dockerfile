@@ -8,8 +8,10 @@ COPY package.json package-lock.json* ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code and build
+# Skopiowanie całego kodu źródłowego z obecnego katalogu
 COPY . .
+
+# Build aplikacji
 RUN npm run build
 
 # Stage 2: Serve the application using Node.js

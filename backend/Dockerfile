@@ -21,10 +21,15 @@ WORKDIR /app
 
 # Create a non-root user for security
 RUN groupadd -r spring && useradd -r -g spring spring
-USER spring:spring
 
 # Copy the built jar from the builder stage
 COPY --from=builder /app/build/libs/*.jar app.jar
+
+# Utworzenie folderu, nadanie uprawnień i przekazanie własności jako ROOT
+RUN mkdir -p /app/uploads && chown -R spring:spring /app && chmod 777 /app/uploads
+
+# DOPIEROT TERAZ przełączamy się na bezpiecznego użytkownika
+USER spring:spring
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

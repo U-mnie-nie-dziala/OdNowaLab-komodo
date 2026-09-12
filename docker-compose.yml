@@ -43,6 +43,9 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    volumes:
+      # NOWE: Mapowanie wolumenu dla plików
+      - backend_uploads:/app/uploads
 
   frontend:
     build:
@@ -58,6 +61,7 @@ services:
 
 volumes:
   postgres_data:
+  backend_uploads:
 
 networks:
   app-network:
