@@ -1,6 +1,7 @@
 package com.example.backend.dtos;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,6 +17,16 @@ import lombok.NoArgsConstructor;
 @Builder
 @Schema(description = "Request payload for creating or updating a user")
 public class UserRequestDto {
+
+    @Email(message = "Invalid email format")
+    @Schema(description = "Email address of the user", example = "jan.kowalski@example.com")
+    private String email;
+
+    @Schema(description = "AWS Cognito unique subject identifier (sub)", example = "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d")
+    private String cognitoSub;
+
+    @Schema(description = "AWS Cognito internal username identifier", example = "c2a9a473-b43e-4b47-bcf7-9a4f7e271a39")
+    private String cognitoUsername;
 
     @NotBlank(message = "Name is required")
     @Size(max = 20, message = "Name must not exceed 20 characters")

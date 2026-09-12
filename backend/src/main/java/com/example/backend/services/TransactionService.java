@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.dtos.TransactionByPhoneRequestDto;
 import com.example.backend.dtos.TransactionRequestDto;
 import com.example.backend.dtos.TransactionResponseDto;
 import com.example.backend.exceptions.InsufficientCoinsException;
@@ -13,6 +14,7 @@ import com.example.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,9 +61,16 @@ public class TransactionService {
 
         int cost = service.getCoinCost();
 
-        // Pessimistic lock on user to ensure coin balance cannot be overdrawn concurrently
-        User user = userRepository.findByIdWithLock(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+        User user;
+        if (request.getUserId() != null) {
+            user = userRepository.findByIdWithLock(request.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+        } else if (request.getPhoneNumber() != null) {
+            user = userRepository.findByPhoneNumberWithLock(request.getPhoneNumber())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with phone number: " + request.getPhoneNumber()));
+        } else {
+            throw new IllegalArgumentException("Either userId or phoneNumber must be provided");
+        }
 
         if (user.getCoins() < cost) {
             throw new InsufficientCoinsException(
@@ -72,10 +81,44 @@ public class TransactionService {
         user.setCoins(user.getCoins() - cost);
         userRepository.save(user);
 
+        LocalDate date = request.getDate() != null ? request.getDate() : LocalDate.now();
+
         Transaction transaction = Transaction.builder()
                 .user(user)
                 .service(service)
-                .date(request.getDate())
+                .date(date)
+                .build();
+
+        Transaction saved = transactionRepository.save(transaction);
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public TransactionResponseDto createTransactionByPhone(TransactionByPhoneRequestDto request) {
+        Service service = serviceRepository.findById(request.getServiceId())
+                .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + request.getServiceId()));
+
+        int cost = service.getCoinCost();
+
+        // Pessimistic lock on user by phone number
+        User user = userRepository.findByPhoneNumberWithLock(request.getPhoneNumber())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with phone number: " + request.getPhoneNumber()));
+
+        if (user.getCoins() < cost) {
+            throw new InsufficientCoinsException(
+                    "Insufficient coins to complete transaction. Required: " + cost
+                            + ", available balance: " + user.getCoins());
+        }
+
+        user.setCoins(user.getCoins() - cost);
+        userRepository.save(user);
+
+        LocalDate date = request.getDate() != null ? request.getDate() : LocalDate.now();
+
+        Transaction transaction = Transaction.builder()
+                .user(user)
+                .service(service)
+                .date(date)
                 .build();
 
         Transaction saved = transactionRepository.save(transaction);
@@ -91,7 +134,17 @@ public class TransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + request.getServiceId()));
 
         Integer oldUserId = transaction.getUser().getId();
-        Integer newUserId = request.getUserId();
+        Integer newUserId;
+        if (request.getUserId() != null) {
+            newUserId = request.getUserId();
+        } else if (request.getPhoneNumber() != null) {
+            User resolved = userRepository.findByPhoneNumber(request.getPhoneNumber())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with phone number: " + request.getPhoneNumber()));
+            newUserId = resolved.getId();
+        } else {
+            newUserId = oldUserId;
+        }
+
         int oldCost = transaction.getService().getCoinCost();
         int newCost = newService.getCoinCost();
 
@@ -142,7 +195,9 @@ public class TransactionService {
         }
 
         transaction.setService(newService);
-        transaction.setDate(request.getDate());
+        if (request.getDate() != null) {
+            transaction.setDate(request.getDate());
+        }
 
         Transaction updated = transactionRepository.save(transaction);
         return mapToResponse(updated);

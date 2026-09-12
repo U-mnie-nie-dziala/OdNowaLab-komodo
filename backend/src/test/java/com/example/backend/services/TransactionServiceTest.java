@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.dtos.TransactionByPhoneRequestDto;
 import com.example.backend.dtos.TransactionRequestDto;
 import com.example.backend.dtos.TransactionResponseDto;
 import com.example.backend.exceptions.InsufficientCoinsException;
@@ -54,6 +55,7 @@ class TransactionServiceTest {
                 .id(1)
                 .name("Jan")
                 .surname("Kowalski")
+                .phoneNumber(123456789)
                 .coins(100)
                 .build();
 
@@ -61,6 +63,7 @@ class TransactionServiceTest {
                 .id(2)
                 .name("Anna")
                 .surname("Nowak")
+                .phoneNumber(987654321)
                 .coins(50)
                 .build();
 
@@ -152,8 +155,6 @@ class TransactionServiceTest {
         @Test
         @DisplayName("createTransaction deducts service coin cost when user has sufficient coins")
         void createTransaction_sufficientCoins_deductsBalance() {
-            // user1 starts with 100 coins, coffee costs 15 coins.
-            // Expected balance: 85 coins.
             TransactionRequestDto request = TransactionRequestDto.builder()
                     .userId(1)
                     .serviceId(1)
@@ -177,9 +178,94 @@ class TransactionServiceTest {
         }
 
         @Test
+        @DisplayName("createTransaction succeeds with phoneNumber instead of userId")
+        void createTransaction_withPhoneNumber_deductsBalance() {
+            TransactionRequestDto request = TransactionRequestDto.builder()
+                    .phoneNumber(123456789)
+                    .serviceId(1)
+                    .date(LocalDate.now())
+                    .build();
+
+            when(serviceRepository.findById(1)).thenReturn(Optional.of(serviceCoffee));
+            when(userRepository.findByPhoneNumberWithLock(123456789)).thenReturn(Optional.of(user1));
+            when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
+                Transaction t = invocation.getArgument(0);
+                t.setId(22);
+                return t;
+            });
+
+            TransactionResponseDto result = transactionService.createTransaction(request);
+
+            assertNotNull(result);
+            assertEquals(85, user1.getCoins());
+            verify(userRepository, times(1)).save(user1);
+            verify(transactionRepository, times(1)).save(any(Transaction.class));
+        }
+
+        @Test
+        @DisplayName("createTransactionByPhone deducts coins and creates transaction")
+        void createTransactionByPhone_success() {
+            TransactionByPhoneRequestDto request = TransactionByPhoneRequestDto.builder()
+                    .phoneNumber(123456789)
+                    .serviceId(1)
+                    .build();
+
+            when(serviceRepository.findById(1)).thenReturn(Optional.of(serviceCoffee));
+            when(userRepository.findByPhoneNumberWithLock(123456789)).thenReturn(Optional.of(user1));
+            when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
+                Transaction t = invocation.getArgument(0);
+                t.setId(25);
+                return t;
+            });
+
+            TransactionResponseDto result = transactionService.createTransactionByPhone(request);
+
+            assertNotNull(result);
+            assertEquals(25, result.getId());
+            assertEquals(1, result.getUserId());
+            assertEquals(85, user1.getCoins());
+            verify(userRepository, times(1)).save(user1);
+            verify(transactionRepository, times(1)).save(any(Transaction.class));
+        }
+
+        @Test
+        @DisplayName("createTransactionByPhone throws ResourceNotFoundException when user phone not found")
+        void createTransactionByPhone_userNotFound() {
+            TransactionByPhoneRequestDto request = TransactionByPhoneRequestDto.builder()
+                    .phoneNumber(999999999)
+                    .serviceId(1)
+                    .build();
+
+            when(serviceRepository.findById(1)).thenReturn(Optional.of(serviceCoffee));
+            when(userRepository.findByPhoneNumberWithLock(999999999)).thenReturn(Optional.empty());
+
+            assertThrows(ResourceNotFoundException.class, () -> transactionService.createTransactionByPhone(request));
+            verify(transactionRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("createTransactionByPhone throws InsufficientCoinsException when user lacks coins")
+        void createTransactionByPhone_insufficientCoins() {
+            user1.setCoins(5);
+            TransactionByPhoneRequestDto request = TransactionByPhoneRequestDto.builder()
+                    .phoneNumber(123456789)
+                    .serviceId(1)
+                    .build();
+
+            when(serviceRepository.findById(1)).thenReturn(Optional.of(serviceCoffee));
+            when(userRepository.findByPhoneNumberWithLock(123456789)).thenReturn(Optional.of(user1));
+
+            InsufficientCoinsException ex = assertThrows(InsufficientCoinsException.class,
+                    () -> transactionService.createTransactionByPhone(request));
+
+            assertTrue(ex.getMessage().contains("Insufficient coins"));
+            assertEquals(5, user1.getCoins());
+            verify(transactionRepository, never()).save(any());
+        }
+
+        @Test
         @DisplayName("createTransaction succeeds when user has exact balance equal to service cost")
         void createTransaction_exactBalance_deductsToZero() {
-            // user1 has exactly 15 coins, coffee costs 15 coins.
             user1.setCoins(15);
             TransactionRequestDto request = TransactionRequestDto.builder()
                     .userId(1)
@@ -205,7 +291,6 @@ class TransactionServiceTest {
         @Test
         @DisplayName("createTransaction throws InsufficientCoinsException when user balance is lower than cost")
         void createTransaction_insufficientCoins_throwsException() {
-            // user1 has 10 coins, coffee costs 15 coins.
             user1.setCoins(10);
             TransactionRequestDto request = TransactionRequestDto.builder()
                     .userId(1)
@@ -220,7 +305,7 @@ class TransactionServiceTest {
                     () -> transactionService.createTransaction(request));
 
             assertTrue(ex.getMessage().contains("Insufficient coins"));
-            assertEquals(10, user1.getCoins()); // Balance remains untouched
+            assertEquals(10, user1.getCoins());
             verify(transactionRepository, never()).save(any());
         }
 
@@ -281,8 +366,6 @@ class TransactionServiceTest {
         @Test
         @DisplayName("updateTransaction: switching to more expensive service deducts additional cost")
         void updateTransaction_sameUser_costIncreases_sufficientBalance() {
-            // Previous service: Coffee (15 coins). New service: Lunch (40 coins). Net cost: +25.
-            // user1 starts with 100 coins. Expected: 100 - 25 = 75 coins.
             TransactionRequestDto request = TransactionRequestDto.builder()
                     .userId(1)
                     .serviceId(2)
@@ -304,7 +387,6 @@ class TransactionServiceTest {
         @Test
         @DisplayName("updateTransaction: switching to more expensive service with insufficient coins throws InsufficientCoinsException")
         void updateTransaction_sameUser_costIncreases_insufficientBalance_throwsException() {
-            // Net cost: +25 coins. user1 only has 20 coins.
             user1.setCoins(20);
             TransactionRequestDto request = TransactionRequestDto.builder()
                     .userId(1)
@@ -320,14 +402,13 @@ class TransactionServiceTest {
                     () -> transactionService.updateTransaction(10, request));
 
             assertTrue(ex.getMessage().contains("Insufficient coins to update transaction"));
-            assertEquals(20, user1.getCoins()); // Unchanged
+            assertEquals(20, user1.getCoins());
             verify(transactionRepository, never()).save(any());
         }
 
         @Test
         @DisplayName("updateTransaction: switching to cheaper service refunds the difference")
         void updateTransaction_sameUser_costDecreases_refundsDifference() {
-            // Transaction had Lunch (40 coins). New service is Coffee (15 coins). Net difference: -25 (refund).
             transaction.setService(serviceLunch);
             TransactionRequestDto request = TransactionRequestDto.builder()
                     .userId(1)
@@ -342,7 +423,6 @@ class TransactionServiceTest {
 
             transactionService.updateTransaction(10, request);
 
-            // user1 (100 coins) + 25 = 125 coins
             assertEquals(125, user1.getCoins());
             verify(userRepository, times(1)).save(user1);
         }
@@ -350,9 +430,6 @@ class TransactionServiceTest {
         @Test
         @DisplayName("updateTransaction: changing user refunds previous user and deducts from new user")
         void updateTransaction_differentUser_transfersSafely() {
-            // Previous user1 had Coffee (15 coins). New user2 (50 coins) gets Coffee (15 coins).
-            // Expect user1 refunded: 100 + 15 = 115.
-            // Expect user2 deducted: 50 - 15 = 35.
             TransactionRequestDto request = TransactionRequestDto.builder()
                     .userId(2)
                     .serviceId(1)
@@ -377,7 +454,6 @@ class TransactionServiceTest {
         @Test
         @DisplayName("updateTransaction: changing user when new user has insufficient coins throws InsufficientCoinsException")
         void updateTransaction_differentUser_insufficientNewUser_throwsException() {
-            // New user2 only has 10 coins, Coffee costs 15 coins.
             user2.setCoins(10);
             TransactionRequestDto request = TransactionRequestDto.builder()
                     .userId(2)
@@ -405,8 +481,6 @@ class TransactionServiceTest {
         @Test
         @DisplayName("deleteTransaction: refunds service cost to user balance upon deletion")
         void deleteTransaction_refundsCoinsToUser() {
-            // Coffee cost is 15 coins. user1 has 100 coins.
-            // After deletion: user1 has 115 coins.
             when(transactionRepository.findById(10)).thenReturn(Optional.of(transaction));
             when(userRepository.findByIdWithLock(1)).thenReturn(Optional.of(user1));
 
