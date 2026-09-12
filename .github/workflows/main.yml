@@ -6,7 +6,7 @@ on:
     # Skrypt ruszy tylko, gdy zmienisz kod aplikacji lub konfigurację Dockera
     paths:
       - 'backend/**'
-      - 'frontend/**'
+      - 'business-frontend/**'
       - 'database/**'
       - 'docker-compose.yml'
 

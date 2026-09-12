@@ -46,7 +46,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./business-frontend
       dockerfile: Dockerfile
     container_name: react_frontend
     ports:
