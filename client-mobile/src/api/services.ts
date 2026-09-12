@@ -1,12 +1,7 @@
-import { ApiError } from '@/api/client';
-import { mockDelay, mockServices } from '@/api/mock-store';
+import { api } from '@/api/client';
+import { ServiceDto } from '@/api/types';
 
 export const servicesApi = {
-  getAll: () => mockDelay([...mockServices]),
-
-  getById: (id: number) => {
-    const service = mockServices.find((s) => s.id === id);
-    if (!service) return Promise.reject(new ApiError(404, `Nie znaleziono oferty o id ${id}`));
-    return mockDelay(service);
-  },
+  getAll: () => api.get<ServiceDto[]>('/api/services'),
+  getById: (id: number) => api.get<ServiceDto>(`/api/services/${id}`),
 };

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, StyleSheet, Switch } from 'react-native';
 
-import { ApiError } from '@/api/client';
+import { ApiError, setApiBaseUrl } from '@/api/client';
 import { Card, CardRow } from '@/components/card';
 import { LabeledInput } from '@/components/labeled-input';
 import { PrimaryButton } from '@/components/primary-button';
@@ -10,12 +10,14 @@ import { ThemedText } from '@/components/themed-text';
 import { useSession } from '@/context/session-context';
 
 export default function SettingsScreen() {
-  const { user, hasResidentCard, updateUser, setHasResidentCard } = useSession();
+  const { user, hasResidentCard, updateUser, setHasResidentCard, apiBaseUrl } = useSession();
 
   const [name, setName] = useState(user?.name ?? '');
   const [surname, setSurname] = useState(user?.surname ?? '');
   const [phoneNumber, setPhoneNumber] = useState(String(user?.phoneNumber ?? ''));
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [serverUrl, setServerUrl] = useState(apiBaseUrl);
+  const [isSavingServer, setIsSavingServer] = useState(false);
 
   if (!user) return null;
 
@@ -37,6 +39,18 @@ export default function SettingsScreen() {
       Alert.alert('Nie udało się zapisać', message);
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  const saveServerUrl = async () => {
+    setIsSavingServer(true);
+    try {
+      await setApiBaseUrl(serverUrl);
+      Alert.alert('Zapisano', 'Adres serwera został zaktualizowany.');
+    } catch (error) {
+      Alert.alert('Błąd', error instanceof Error ? error.message : 'Podaj poprawny adres serwera.');
+    } finally {
+      setIsSavingServer(false);
     }
   };
 
@@ -70,6 +84,24 @@ export default function SettingsScreen() {
         <ThemedText type="small" themeColor="textSecondary">
           Posiadacze karty mieszkańca otrzymują mnożnik x1.15 do zdobywanych punktów.
         </ThemedText>
+      </Card>
+
+      <Card>
+        <ThemedText type="smallBold">Adres serwera</ThemedText>
+        <LabeledInput
+          label="np. http://192.168.1.50:8080"
+          value={serverUrl}
+          onChangeText={setServerUrl}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+        />
+        <PrimaryButton
+          label="Zapisz adres serwera"
+          onPress={saveServerUrl}
+          loading={isSavingServer}
+          variant="secondary"
+        />
       </Card>
     </Screen>
   );

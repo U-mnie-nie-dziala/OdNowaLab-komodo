@@ -1,6 +1,8 @@
+import { Image } from 'expo-image';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, StyleSheet } from 'react-native';
 
+import { getApiBaseUrl } from '@/api/client';
 import { companiesApi } from '@/api/companies';
 import { servicesApi } from '@/api/services';
 import { CompanyDto, ServiceDto } from '@/api/types';
@@ -15,9 +17,15 @@ export default function BusinessesScreen() {
   const [companies, setCompanies] = useState<CompanyDto[] | null>(null);
   const [servicesByCompany, setServicesByCompany] = useState<Map<number, ServiceDto[]>>(new Map());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [apiBaseUrl, setApiBaseUrl] = useState('');
 
   const load = useCallback(async () => {
-    const [companyList, serviceList] = await Promise.all([companiesApi.getAll(), servicesApi.getAll()]);
+    const [companyList, serviceList, baseUrl] = await Promise.all([
+      companiesApi.getAll(),
+      servicesApi.getAll(),
+      getApiBaseUrl(),
+    ]);
+    setApiBaseUrl(baseUrl);
     const grouped = new Map<number, ServiceDto[]>();
     for (const service of serviceList) {
       if (service.providerId == null) continue;
@@ -60,6 +68,14 @@ export default function BusinessesScreen() {
         const offers = servicesByCompany.get(company.id) ?? [];
         return (
           <Card key={company.id}>
+            {company.picture && (
+              <Image
+                style={styles.companyImage}
+                source={{ uri: `${apiBaseUrl}${company.picture}` }}
+                contentFit="cover"
+                transition={150}
+              />
+            )}
             <ThemedText type="smallBold">{company.name}</ThemedText>
             <Badge
               label={company.isInRevitalizationZone ? 'Strefa rewitalizacji' : 'Poza strefą'}
@@ -92,5 +108,10 @@ const styles = StyleSheet.create({
   },
   offerRow: {
     paddingVertical: Spacing.half,
+  },
+  companyImage: {
+    width: '100%',
+    height: 140,
+    borderRadius: Spacing.two,
   },
 });
