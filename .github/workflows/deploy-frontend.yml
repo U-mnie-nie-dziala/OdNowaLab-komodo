@@ -1,0 +1,28 @@
+name: Deploy Frontend
+
+on:
+  workflow_call:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Frontend to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_FRONTEND_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            if [ ! -d "OdNowaLab-komodo" ]; then
+              git clone https://${{ secrets.GH_PAT }}@github.com/U-mnie-nie-dziala/OdNowaLab-komodo.git
+            fi
+            
+            cd OdNowaLab-komodo
+            git pull origin main
+            
+            # Wdraża frontend używając pliku konfiguracyjnego dockera dla frontendu
+            docker compose -f docker-compose-frontend.yml up -d --build
+            
+            # Czyści dysk ze starych obrazów
+            docker image prune -f

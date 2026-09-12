@@ -1,0 +1,17 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'business-frontend/**'
+      - 'docker-compose-frontend.yml' # Warto dodać, żeby reagował na zmiany konfiguracji dockera
+
+jobs:
+  frontend-validate:
+    uses: ./.github/workflows/frontend-validate.yml
+
+  deploy-frontend:
+    needs: [frontend-validate]
+    uses: ./.github/workflows/deploy-frontend.yml
+    secrets: inherit

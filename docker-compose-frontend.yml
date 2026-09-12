@@ -1,0 +1,9 @@
+services:
+  frontend:
+    build:
+      context: ./business-frontend
+      dockerfile: Dockerfile
+    container_name: react_frontend
+    ports:
+      - "80:80"
+    restart: unless-stopped

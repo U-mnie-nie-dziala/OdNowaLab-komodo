@@ -1,26 +1,25 @@
-name: Frontend Validation
+name: Frontend Validate
+
 on:
-  workflow_call:
+  workflow_call: # Pozwala wywołać ten plik z innego workflow
 
 jobs:
-  build-frontend:
+  validate:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./business-frontend # Wskazuje folder z Reactem
-
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: ./business-frontend/package-lock.json
+          cache-dependency-path: business-frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: ./business-frontend
         run: npm ci
 
-      - name: Build project
+      - name: Build
+        working-directory: ./business-frontend
         run: npm run build
