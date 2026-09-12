@@ -66,3 +66,14 @@ cd client-mobile
 npm install
 npx expo start
 ```
+
+## Linki 
+
+### Backend:
+http://3.121.224.169:8080/
+
+### Frontend -> client:
+http://54.93.89.23/
+
+### Frontend -> biznes:
+http://3.76.44.107/
