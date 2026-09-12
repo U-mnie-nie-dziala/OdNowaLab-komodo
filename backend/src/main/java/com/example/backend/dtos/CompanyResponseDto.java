@@ -34,4 +34,7 @@ public class CompanyResponseDto {
 
     @Schema(description = "Whether the company is in a revitalization zone", example = "true")
     private Boolean isInRevitalizationZone;
+
+    @Schema(description = "Relative URL path to the company picture static resource", example = "/uploads/companies/example.jpg")
+    private String picture;
 }

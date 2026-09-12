@@ -63,4 +63,7 @@ public class Company {
     @Column(name = "isinrevitalizationzone", nullable = false)
     @Builder.Default
     private Boolean isInRevitalizationZone = false;
+
+    @Column(name = "picture", length = 255)
+    private String picture;
 }

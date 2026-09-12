@@ -1,6 +1,7 @@
 package com.example.backend.dtos;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -22,7 +23,8 @@ public class UserRequestDto {
     private String name;
 
     @NotNull(message = "Coins is required")
-    @Schema(description = "Coin balance of the user", example = "100")
+    @Min(value = 0, message = "Coins balance cannot be negative")
+    @Schema(description = "Coin balance of the user", example = "100", minimum = "0")
     private Integer coins;
 
     @NotBlank(message = "Surname is required")
