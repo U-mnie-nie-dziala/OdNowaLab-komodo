@@ -24,8 +24,9 @@ module.exports = {
       icon: './assets/expo.icon',
     },
     android: {
+      package: 'com.odnowalab.clientmobile',
       adaptiveIcon: {
-        backgroundColor: '#E6F4FE',
+        backgroundColor: '#d6f2e1',
         foregroundImage: './assets/images/android-icon-foreground.png',
         backgroundImage: './assets/images/android-icon-background.png',
         monochromeImage: './assets/images/android-icon-monochrome.png',
@@ -46,16 +47,24 @@ module.exports = {
       [
         'expo-splash-screen',
         {
-          backgroundColor: '#208AEF',
+          // Must match Brand[700] in src/constants/theme.ts and
+          // styles.splashOverlay in src/components/animated-icon.tsx.
+          backgroundColor: '#106141',
           image: './assets/images/splash-icon.png',
           imageWidth: 76,
         },
       ],
       'expo-build-properties',
+      'expo-secure-store',
     ],
     experiments: {
       typedRoutes: true,
       reactCompiler: true,
+    },
+    extra: {
+      eas: {
+        projectId: '2e921c02-b7b9-4634-9f43-ce53e02a8060',
+      },
     },
   },
 };

@@ -13,6 +13,17 @@ export class ApiError extends Error {
 
 let cachedBaseUrl: string | undefined;
 
+let getAccessTokenFn: (() => Promise<string | null>) | null = null;
+let onUnauthorizedFn: (() => Promise<string | null>) | null = null;
+
+export function setAuthTokenGetter(fn: () => Promise<string | null>): void {
+  getAccessTokenFn = fn;
+}
+
+export function setUnauthorizedHandler(fn: () => Promise<string | null>): void {
+  onUnauthorizedFn = fn;
+}
+
 function normalizeBaseUrl(url: string): string {
   const trimmed = url.trim().replace(/\/+$/, '');
   if (!trimmed || /^https?:\/\//i.test(trimmed)) {
@@ -45,11 +56,13 @@ type ErrorBody = {
   fieldErrors?: Record<string, string>;
 };
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, isRetry = false): Promise<T> {
   const baseUrl = await getApiBaseUrl();
   if (!baseUrl) {
     throw new ApiError(0, 'Adres serwera API nie jest skonfigurowany.');
   }
+
+  const token = getAccessTokenFn ? await getAccessTokenFn() : null;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -61,6 +74,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init?.headers,
       },
       signal: controller.signal,
@@ -73,6 +87,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(0, `Nie udało się połączyć z serwerem (${detail}). Adres: ${baseUrl}${path}`);
   } finally {
     clearTimeout(timeout);
+  }
+
+  if (response.status === 401 && token && onUnauthorizedFn && !isRetry) {
+    const newToken = await onUnauthorizedFn();
+    if (newToken) {
+      return request<T>(path, init, true);
+    }
   }
 
   if (response.status === 204) {
@@ -98,8 +119,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  post: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'POST', ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: (path: string) => request<void>(path, { method: 'DELETE' }),

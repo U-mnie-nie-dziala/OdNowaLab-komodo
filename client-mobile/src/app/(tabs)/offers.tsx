@@ -68,9 +68,7 @@ export default function OffersScreen() {
 
   return (
     <Screen refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}>
-      <ThemedText type="title" style={styles.title}>
-        Oferty
-      </ThemedText>
+      <ThemedText type="pageHeader">Oferty</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         Wymieniaj zebrane punkty na rabaty u lokalnych przedsiębiorców.
       </ThemedText>
@@ -117,10 +115,6 @@ export default function OffersScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
   flexText: {
     flex: 1,
   },

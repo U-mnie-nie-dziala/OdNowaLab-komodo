@@ -51,9 +51,7 @@ export default function BusinessesScreen() {
 
   return (
     <Screen refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}>
-      <ThemedText type="title" style={styles.title}>
-        Przedsiębiorstwa
-      </ThemedText>
+      <ThemedText type="pageHeader">Przedsiębiorstwa</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         Firmy oznaczone jako &quot;Strefa rewitalizacji&quot; naliczają punkty za zakupy.
       </ThemedText>
@@ -102,10 +100,6 @@ export default function BusinessesScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
   offerRow: {
     paddingVertical: Spacing.half,
   },

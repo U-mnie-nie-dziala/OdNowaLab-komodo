@@ -1,6 +1,15 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import {
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  Geist_700Bold,
+  Geist_800ExtraBold,
+} from '@expo-google-fonts/geist';
+import { GeistMono_500Medium } from '@expo-google-fonts/geist-mono';
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ConnectionErrorScreen } from '@/components/connection-error-screen';
@@ -8,10 +17,10 @@ import { SessionProvider, useSession } from '@/context/session-context';
 
 SplashScreen.preventAutoHideAsync();
 
-function RootNavigator() {
-  const { isLoading, error, apiBaseUrl, retryBootstrap } = useSession();
+function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
+  const { isLoading, error, apiBaseUrl, retryBootstrap, isAuthenticated } = useSession();
 
-  if (isLoading) {
+  if (isLoading || !fontsReady) {
     return null;
   }
 
@@ -21,18 +30,36 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
+      <Stack.Protected guard={isAuthenticated}>
+        <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!isAuthenticated}>
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
     </Stack>
   );
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const [fontsLoaded, fontError] = useFonts({
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_700Bold,
+    Geist_800ExtraBold,
+    GeistMono_500Medium,
+    ...Ionicons.font,
+  });
+
+  if (fontError) {
+    console.warn('Geist fonts failed to load, falling back to system font:', fontError);
+  }
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DefaultTheme}>
       <AnimatedSplashOverlay />
       <SessionProvider>
-        <RootNavigator />
+        <RootNavigator fontsReady={fontsLoaded || !!fontError} />
       </SessionProvider>
     </ThemeProvider>
   );

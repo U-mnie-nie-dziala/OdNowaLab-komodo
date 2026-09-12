@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Brand, Destructive, Radius, Spacing } from '@/constants/theme';
 
 type PrimaryButtonProps = {
   label: string;
@@ -33,7 +33,7 @@ export function PrimaryButton({
         pressed && !isDisabled && styles.pressed,
       ]}>
       {loading ? (
-        <ActivityIndicator color={variant === 'secondary' ? '#3c87f7' : '#ffffff'} />
+        <ActivityIndicator color={variant === 'secondary' ? Brand[600] : '#ffffff'} />
       ) : (
         <ThemedText
           type="smallBold"
@@ -47,32 +47,37 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: Spacing.three,
+    borderRadius: Radius.xxl,
     paddingVertical: Spacing.two + 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primary: {
-    backgroundColor: '#3c87f7',
+    backgroundColor: Brand[600],
+    shadowColor: Brand[900],
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
   },
   secondary: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#3c87f7',
+    borderColor: Brand[200],
   },
   destructive: {
-    backgroundColor: '#e5484d',
+    backgroundColor: Destructive[500],
   },
   disabled: {
     opacity: 0.5,
   },
   pressed: {
-    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
   label: {
     color: '#ffffff',
   },
   secondaryLabel: {
-    color: '#3c87f7',
+    color: Brand[800],
   },
 });

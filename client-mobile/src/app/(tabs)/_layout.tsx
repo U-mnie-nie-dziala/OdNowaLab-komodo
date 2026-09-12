@@ -1,20 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { Brand, Colors } from '@/constants/theme';
 
 export default function TabsLayout() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#3c87f7',
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: { backgroundColor: colors.background },
+        tabBarActiveTintColor: Brand[600],
+        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: Colors.background,
+          borderTopColor: Colors.border,
+          borderTopWidth: 1,
+        },
       }}>
       <Tabs.Screen
         name="index"
@@ -48,6 +48,7 @@ export default function TabsLayout() {
         name="map"
         options={{
           title: 'Mapa',
+          href: null,
           tabBarIcon: ({ color, size }) => <Ionicons name="map" color={color} size={size} />,
         }}
       />

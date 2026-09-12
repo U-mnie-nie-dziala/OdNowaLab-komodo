@@ -9,17 +9,25 @@ import {
   useState,
 } from 'react';
 
-import { ApiError, getApiBaseUrl } from '@/api/client';
+import { authApi } from '@/api/auth';
+import { clearTokens, getAccessToken, getTokens, isExpired, saveTokens } from '@/api/auth-storage';
+import { ApiError, getApiBaseUrl, setAuthTokenGetter, setUnauthorizedHandler } from '@/api/client';
 import { usersApi } from '@/api/users';
-import { UserDto } from '@/api/types';
-import { DEFAULT_DEMO_USER_ID, STORAGE_KEYS } from '@/constants/config';
+import { RegisterRequest, RegisterResponse, UserDto } from '@/api/types';
+import { STORAGE_KEYS } from '@/constants/config';
 
 type SessionState = {
   isLoading: boolean;
+  isAuthenticated: boolean;
   user: UserDto | null;
   error: string | null;
   apiBaseUrl: string;
   hasResidentCard: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (body: RegisterRequest) => Promise<RegisterResponse>;
+  confirmRegistration: (email: string, confirmationCode: string) => Promise<void>;
+  resendCode: (email: string) => Promise<void>;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (patch: Partial<Pick<UserDto, 'name' | 'surname' | 'phoneNumber'>>) => Promise<void>;
   setHasResidentCard: (value: boolean) => Promise<void>;
@@ -28,25 +36,45 @@ type SessionState = {
 
 const SessionContext = createContext<SessionState | undefined>(undefined);
 
-/**
- * TEMPORARY: there is no login/auth yet — real auth is coming via Cognito.
- * This bootstraps a fixed demo user from the backend's seed data. Replace
- * with a real Cognito session (decode the id token, look up the matching
- * backend user) once auth lands.
- */
-async function bootstrapUser(): Promise<UserDto> {
-  const storedUserId = await AsyncStorage.getItem(STORAGE_KEYS.sessionUserId);
-  const id = storedUserId ? Number(storedUserId) : DEFAULT_DEMO_USER_ID;
+setAuthTokenGetter(getAccessToken);
+
+async function tryRefresh(refreshToken: string): Promise<string | null> {
+  try {
+    const refreshed = await authApi.refresh({ refreshToken });
+    await saveTokens(refreshed);
+    return refreshed.accessToken;
+  } catch {
+    return null;
+  }
+}
+
+async function restoreSession(): Promise<UserDto | null> {
+  const tokens = await getTokens();
+  if (!tokens) return null;
+
+  if (isExpired(tokens.expiresAt)) {
+    const newAccessToken = await tryRefresh(tokens.refreshToken);
+    if (!newAccessToken) {
+      await clearTokens();
+      return null;
+    }
+  }
 
   try {
-    const user = await usersApi.getById(id);
-    await AsyncStorage.setItem(STORAGE_KEYS.sessionUserId, String(user.id));
-    return user;
+    return await authApi.me();
   } catch (error) {
-    if (error instanceof ApiError && error.status === 404 && id !== DEFAULT_DEMO_USER_ID) {
-      const fallback = await usersApi.getById(DEFAULT_DEMO_USER_ID);
-      await AsyncStorage.setItem(STORAGE_KEYS.sessionUserId, String(fallback.id));
-      return fallback;
+    if (error instanceof ApiError && error.status === 401) {
+      const newAccessToken = await tryRefresh(tokens.refreshToken);
+      if (newAccessToken) {
+        try {
+          return await authApi.me();
+        } catch {
+          await clearTokens();
+          return null;
+        }
+      }
+      await clearTokens();
+      return null;
     }
     throw error;
   }
@@ -59,12 +87,27 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [apiBaseUrl, setApiBaseUrlState] = useState('');
   const [hasResidentCard, setHasResidentCardState] = useState(false);
 
+  const handleUnauthorized = useCallback(async () => {
+    const tokens = await getTokens();
+    if (!tokens) return null;
+    const newAccessToken = await tryRefresh(tokens.refreshToken);
+    if (!newAccessToken) {
+      await clearTokens();
+      setUser(null);
+    }
+    return newAccessToken;
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(handleUnauthorized);
+  }, [handleUnauthorized]);
+
   const runBootstrap = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     setApiBaseUrlState(await getApiBaseUrl());
     try {
-      setUser(await bootstrapUser());
+      setUser(await restoreSession());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Nieznany błąd połączenia.');
     } finally {
@@ -80,10 +123,38 @@ export function SessionProvider({ children }: PropsWithChildren) {
     })();
   }, [runBootstrap]);
 
+  const login = useCallback(async (email: string, password: string) => {
+    const resp = await authApi.login({ email, password });
+    await saveTokens(resp);
+    setUser(resp.user ?? null);
+  }, []);
+
+  const register = useCallback(
+    (body: RegisterRequest) => authApi.register({ ...body, isOwner: false }),
+    []
+  );
+
+  const confirmRegistration = useCallback(async (email: string, confirmationCode: string) => {
+    await authApi.confirm({ email, confirmationCode });
+  }, []);
+
+  const resendCode = useCallback(async (email: string) => {
+    await authApi.resendCode({ email });
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Best-effort server-side sign-out — local logout must always succeed.
+    }
+    await clearTokens();
+    setUser(null);
+  }, []);
+
   const refreshUser = useCallback(async () => {
     if (!user) return;
-    const refreshed = await usersApi.getById(user.id);
-    setUser(refreshed);
+    setUser(await authApi.me());
   }, [user]);
 
   const updateUser = useCallback(
@@ -113,10 +184,16 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const value = useMemo<SessionState>(
     () => ({
       isLoading,
+      isAuthenticated: user !== null,
       user,
       error,
       apiBaseUrl,
       hasResidentCard,
+      login,
+      register,
+      confirmRegistration,
+      resendCode,
+      logout,
       refreshUser,
       updateUser,
       setHasResidentCard,
@@ -128,6 +205,11 @@ export function SessionProvider({ children }: PropsWithChildren) {
       error,
       apiBaseUrl,
       hasResidentCard,
+      login,
+      register,
+      confirmRegistration,
+      resendCode,
+      logout,
       refreshUser,
       updateUser,
       setHasResidentCard,

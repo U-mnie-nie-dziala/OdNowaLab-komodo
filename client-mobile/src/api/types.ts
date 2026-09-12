@@ -6,7 +6,8 @@ export interface UserDto {
   name: string;
   surname: string;
   coins: number;
-  phoneNumber: number;
+  phoneNumber: number | null;
+  isPhoneVerified: boolean;
   isDeleted: boolean;
   isOwner: boolean;
 }
@@ -18,9 +19,58 @@ export interface UserRequest {
   name: string;
   surname: string;
   coins: number;
-  phoneNumber: number;
+  phoneNumber: number | null;
   isDeleted: boolean;
   isOwner: boolean;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  name: string;
+  surname: string;
+  phoneNumber?: number;
+  isOwner?: boolean;
+}
+
+export interface RegisterResponse {
+  message: string;
+  userSub: string;
+  email: string;
+  isConfirmed: boolean;
+  user: UserDto;
+}
+
+export interface ConfirmRequest {
+  email: string;
+  confirmationCode: string;
+}
+
+export interface ResendCodeRequest {
+  email: string;
+}
+
+export interface MessageResponse {
+  message: string;
+  success?: boolean;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RefreshRequest {
+  refreshToken: string;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  idToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tokenType: string;
+  user?: UserDto | null;
 }
 
 export interface CompanyDto {

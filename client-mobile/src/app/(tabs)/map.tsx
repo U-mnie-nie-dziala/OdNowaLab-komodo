@@ -7,7 +7,7 @@ import { CompanyDto } from '@/api/types';
 import { Card } from '@/components/card';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Brand, Neutral, Spacing } from '@/constants/theme';
 
 export default function MapScreen() {
   const [companies, setCompanies] = useState<CompanyDto[] | null>(null);
@@ -34,9 +34,7 @@ export default function MapScreen() {
 
   return (
     <Screen scroll={false}>
-      <ThemedText type="title" style={styles.title}>
-        Mapa firm
-      </ThemedText>
+      <ThemedText type="pageHeader">Mapa firm</ThemedText>
 
       <Card style={styles.mapCard}>
         {mapRegion ? (
@@ -47,7 +45,7 @@ export default function MapScreen() {
                 coordinate={{ latitude: company.locationX, longitude: company.locationY }}
                 title={company.name}
                 description={company.isInRevitalizationZone ? 'Strefa rewitalizacji' : 'Poza strefą'}
-                pinColor={company.isInRevitalizationZone ? '#1e8e5a' : '#8a8a8a'}
+                pinColor={company.isInRevitalizationZone ? Brand[600] : Neutral[500]}
               />
             ))}
           </MapView>
@@ -62,10 +60,6 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
   mapCard: {
     flex: 1,
     padding: 0,

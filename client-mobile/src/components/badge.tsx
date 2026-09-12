@@ -1,14 +1,14 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Brand, Neutral, Radius, Spacing } from '@/constants/theme';
 
 type BadgeTone = 'positive' | 'neutral';
 
 export function Badge({ label, tone = 'neutral' }: { label: string; tone?: BadgeTone }) {
   return (
     <View style={[styles.badge, tone === 'positive' ? styles.positive : styles.neutral]}>
-      <ThemedText type="small" style={tone === 'positive' ? styles.positiveText : undefined}>
+      <ThemedText type="small" style={tone === 'positive' ? styles.positiveText : styles.neutralText}>
         {label}
       </ThemedText>
     </View>
@@ -17,18 +17,21 @@ export function Badge({ label, tone = 'neutral' }: { label: string; tone?: Badge
 
 const styles = StyleSheet.create({
   badge: {
-    borderRadius: Spacing.four,
+    borderRadius: Radius.full,
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.half,
     alignSelf: 'flex-start',
   },
   positive: {
-    backgroundColor: '#1e8e5a22',
+    backgroundColor: Brand[100],
   },
   positiveText: {
-    color: '#1e8e5a',
+    color: Brand[800],
   },
   neutral: {
-    backgroundColor: '#8888881f',
+    backgroundColor: Neutral[100],
+  },
+  neutralText: {
+    color: Neutral[500],
   },
 });

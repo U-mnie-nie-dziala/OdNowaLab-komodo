@@ -10,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useSession } from '@/context/session-context';
 
 export default function SettingsScreen() {
-  const { user, hasResidentCard, updateUser, setHasResidentCard, apiBaseUrl } = useSession();
+  const { user, hasResidentCard, updateUser, setHasResidentCard, apiBaseUrl, logout } = useSession();
 
   const [name, setName] = useState(user?.name ?? '');
   const [surname, setSurname] = useState(user?.surname ?? '');
@@ -18,6 +18,7 @@ export default function SettingsScreen() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [serverUrl, setServerUrl] = useState(apiBaseUrl);
   const [isSavingServer, setIsSavingServer] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (!user) return null;
 
@@ -42,6 +43,15 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   const saveServerUrl = async () => {
     setIsSavingServer(true);
     try {
@@ -56,9 +66,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <ThemedText type="title" style={styles.title}>
-        Ustawienia
-      </ThemedText>
+      <ThemedText type="pageHeader">Ustawienia</ThemedText>
 
       <Card>
         <ThemedText type="smallBold">Profil</ThemedText>
@@ -103,15 +111,18 @@ export default function SettingsScreen() {
           variant="secondary"
         />
       </Card>
+
+      <PrimaryButton
+        label="Wyloguj się"
+        onPress={handleLogout}
+        loading={isLoggingOut}
+        variant="destructive"
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
   flexText: {
     flex: 1,
   },

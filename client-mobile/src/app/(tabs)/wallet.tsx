@@ -8,6 +8,7 @@ import { transactionsApi } from '@/api/transactions';
 import { Card, CardRow } from '@/components/card';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
+import { Brand, Destructive, Fonts } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 
 type ActivityItem = {
@@ -69,9 +70,7 @@ export default function WalletScreen() {
 
   return (
     <Screen refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}>
-      <ThemedText type="title" style={styles.title}>
-        Portfel
-      </ThemedText>
+      <ThemedText type="pageHeader">Portfel</ThemedText>
 
       <Card>
         <ThemedText type="small" themeColor="textSecondary">
@@ -119,21 +118,16 @@ export default function WalletScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
   balance: {
-    fontSize: 40,
-    lineHeight: 46,
+    fontFamily: Fonts.mono,
   },
   activityTitle: {
     flex: 1,
   },
   positiveAmount: {
-    color: '#1e8e5a',
+    color: Brand[700],
   },
   negativeAmount: {
-    color: '#e5484d',
+    color: Destructive[700],
   },
 });

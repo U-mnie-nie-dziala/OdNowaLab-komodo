@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Brand, Neutral, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export function LabeledInput({ label, style, ...rest }: TextInputProps & { label: string }) {
+export function LabeledInput({ label, style, onFocus, onBlur, ...rest }: TextInputProps & { label: string }) {
   const theme = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -13,10 +15,19 @@ export function LabeledInput({ label, style, ...rest }: TextInputProps & { label
         {label}
       </ThemedText>
       <TextInput
-        placeholderTextColor={theme.textSecondary}
+        placeholderTextColor={Neutral[400]}
+        onFocus={(event) => {
+          setIsFocused(true);
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setIsFocused(false);
+          onBlur?.(event);
+        }}
         style={[
           styles.input,
           { color: theme.text, backgroundColor: theme.backgroundElement },
+          isFocused && styles.inputFocused,
           style,
         ]}
         {...rest}
@@ -27,12 +38,17 @@ export function LabeledInput({ label, style, ...rest }: TextInputProps & { label
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.one,
+    gap: 6,
   },
   input: {
-    borderRadius: Spacing.two,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Neutral[200],
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     fontSize: 16,
+  },
+  inputFocused: {
+    borderColor: Brand[400],
   },
 });

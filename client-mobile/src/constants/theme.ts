@@ -1,55 +1,73 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design tokens ported from business-frontend/app/globals.css so the mobile
+ * app matches the web app's brand (green) + coin (gold) visual identity.
  */
 
-import '@/global.css';
-
-import { Platform } from 'react-native';
-
-export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+export const Brand = {
+  50: '#eefaf3',
+  100: '#d6f2e1',
+  200: '#aee5c6',
+  300: '#78d1a4',
+  400: '#43b67f',
+  500: '#1f9a63',
+  600: '#137a4f',
+  700: '#106141',
+  800: '#0f4d36',
+  900: '#0c3f2d',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export const Coin = {
+  100: '#fdf0d5',
+  200: '#fbe1ad',
+  300: '#ffdd8a',
+  400: '#f9c452',
+  500: '#f0a91e',
+  600: '#d98a0b',
+  700: '#b46c08',
+} as const;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+export const Destructive = {
+  50: '#fef2f2',
+  100: '#fee2e2',
+  300: '#fca5a5',
+  500: '#ef4444',
+  700: '#b91c1c',
+} as const;
+
+export const Neutral = {
+  50: '#f8fafc',
+  100: '#f1f5f9',
+  200: '#e2e8f0',
+  400: '#94a3b8',
+  500: '#64748b',
+} as const;
+
+export const Colors = {
+  text: '#0f2a20',
+  textSecondary: '#4b6157',
+  background: '#f6f8f6',
+  backgroundElement: '#ffffff',
+  border: 'rgba(0, 0, 0, 0.05)',
+} as const;
+
+export type ThemeColor = keyof typeof Colors;
+
+export const Radius = {
+  md: 8,
+  xl: 12,
+  xxl: 16,
+  xxxl: 24,
+  full: 9999,
+} as const;
+
+export const Fonts = {
+  regular: 'Geist_400Regular',
+  medium: 'Geist_500Medium',
+  semiBold: 'Geist_600SemiBold',
+  bold: 'Geist_700Bold',
+  extraBold: 'Geist_800ExtraBold',
+  mono: 'GeistMono_500Medium',
+} as const;
 
 export const Spacing = {
   half: 2,

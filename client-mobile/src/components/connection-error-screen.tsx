@@ -7,6 +7,7 @@ import { LabeledInput } from '@/components/labeled-input';
 import { PrimaryButton } from '@/components/primary-button';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
+import { Destructive } from '@/constants/theme';
 
 type ConnectionErrorScreenProps = {
   message: string;
@@ -34,9 +35,7 @@ export function ConnectionErrorScreen({ message, apiBaseUrl, onRetry }: Connecti
 
   return (
     <Screen>
-      <ThemedText type="title" style={styles.title}>
-        Brak połączenia
-      </ThemedText>
+      <ThemedText type="pageHeader">Brak połączenia</ThemedText>
       <ThemedText type="default" themeColor="textSecondary">
         {message}
       </ThemedText>
@@ -65,11 +64,7 @@ export function ConnectionErrorScreen({ message, apiBaseUrl, onRetry }: Connecti
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
   errorText: {
-    color: '#e5484d',
+    color: Destructive[500],
   },
 });

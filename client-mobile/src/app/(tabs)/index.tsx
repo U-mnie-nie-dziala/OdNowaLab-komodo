@@ -8,7 +8,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { COINS_PER_ZLOTY, RESIDENT_CARD_MULTIPLIER } from '@/constants/config';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import { useSession } from '@/context/session-context';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -23,9 +23,7 @@ export default function HomeScreen() {
 
   return (
     <Screen >
-      <ThemedText type="title" style={styles.greeting}>
-        Cześć, {user.name}!
-      </ThemedText>
+      <ThemedText type="pageHeader">Cześć, {user.name}!</ThemedText>
 
       <Card style={{ alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         <ThemedText type="small" themeColor="textSecondary">
@@ -82,18 +80,13 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  greeting: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
   balance: {
-    fontSize: 40,
-    lineHeight: 46,
+    fontFamily: Fonts.mono,
   },
   qrCard: {
     alignItems: 'center',
-    // alignSelf: 'center',
-    justifyContent: 'center',
+    alignSelf: 'center',
+    // justifyContent: 'center',
     width: '100%',
     maxWidth: 300,
     paddingVertical: Spacing.four,
