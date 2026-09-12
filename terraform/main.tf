@@ -101,3 +101,8 @@ output "public_ip" {
   description = "Publiczny adres IP serwera"
   value       = aws_instance.hackathon_server.public_ip
 }
+
+resource "aws_sns_sms_preferences" "sms_settings" {
+  default_sender_id = "Hackathon"
+  default_sms_type  = "Promotional" # Zmienione na typ promocyjny
+}
