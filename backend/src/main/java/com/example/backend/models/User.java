@@ -54,9 +54,12 @@ public class User {
     @Column(name = "surname", nullable = false, length = 20)
     private String surname;
 
-    @NotNull(message = "PhoneNumber is required")
-    @Column(name = "phonenumber", nullable = false)
+    @Column(name = "phonenumber", nullable = true)
     private Integer phoneNumber;
+
+    @Builder.Default
+    @Column(name = "is_phone_verified", nullable = false)
+    private Boolean isPhoneVerified = false;
 
     @Builder.Default
     @Column(name = "is_deleted", nullable = false)

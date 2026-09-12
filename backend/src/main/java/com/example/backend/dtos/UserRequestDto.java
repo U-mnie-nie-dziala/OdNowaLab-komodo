@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,7 +32,6 @@ public class UserRequestDto {
     @Schema(description = "First name of the user", example = "Jan", maxLength = 20)
     private String name;
 
-    @NotNull(message = "Coins is required")
     @Min(value = 0, message = "Coins balance cannot be negative")
     @Schema(description = "Coin balance of the user", example = "100", minimum = "0")
     private Integer coins;
@@ -43,9 +41,12 @@ public class UserRequestDto {
     @Schema(description = "Last name of the user", example = "Kowalski", maxLength = 20)
     private String surname;
 
-    @NotNull(message = "PhoneNumber is required")
     @Schema(description = "Phone number of the user", example = "123456789")
     private Integer phoneNumber;
+
+    @Builder.Default
+    @Schema(description = "Whether the user's phone number has been verified via SMS", example = "false", defaultValue = "false")
+    private Boolean isPhoneVerified = false;
 
     @Builder.Default
     @Schema(description = "Whether the user account is soft deleted", example = "false", defaultValue = "false")

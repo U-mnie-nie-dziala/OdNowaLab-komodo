@@ -37,6 +37,9 @@ public class UserResponseDto {
     @Schema(description = "Phone number of the user", example = "123456789")
     private Integer phoneNumber;
 
+    @Schema(description = "Whether the user's phone number has been verified via SMS", example = "true")
+    private Boolean isPhoneVerified;
+
     @Schema(description = "Soft deletion status", example = "false")
     private Boolean isDeleted;
 

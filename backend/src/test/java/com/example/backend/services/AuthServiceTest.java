@@ -4,10 +4,12 @@ import com.example.backend.dtos.UserResponseDto;
 import com.example.backend.dtos.auth.AuthResponseDto;
 import com.example.backend.dtos.auth.ChangePasswordRequestDto;
 import com.example.backend.dtos.auth.ConfirmForgotPasswordRequestDto;
+import com.example.backend.dtos.auth.ConfirmPhoneRequestDto;
 import com.example.backend.dtos.auth.ConfirmSignUpRequestDto;
 import com.example.backend.dtos.auth.ForgotPasswordRequestDto;
 import com.example.backend.dtos.auth.LoginRequestDto;
 import com.example.backend.dtos.auth.MessageResponseDto;
+import com.example.backend.dtos.auth.PhoneVerificationRequestDto;
 import com.example.backend.dtos.auth.RefreshTokenRequestDto;
 import com.example.backend.dtos.auth.RegisterRequestDto;
 import com.example.backend.dtos.auth.RegisterResponseDto;
@@ -23,14 +25,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeType;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AuthenticationResultType;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ChangePasswordResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.CodeDeliveryDetailsType;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmForgotPasswordResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ForgotPasswordResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserAttributeVerificationCodeResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GlobalSignOutResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ResendConfirmationCodeResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.UpdateUserAttributesResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.VerifyUserAttributeResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -70,6 +76,7 @@ class AuthServiceTest {
                 .surname("Kowalski")
                 .coins(0)
                 .phoneNumber(123456789)
+                .isPhoneVerified(false)
                 .isDeleted(false)
                 .isOwner(false)
                 .build();
@@ -83,13 +90,14 @@ class AuthServiceTest {
                 .surname("Kowalski")
                 .coins(0)
                 .phoneNumber(123456789)
+                .isPhoneVerified(false)
                 .isDeleted(false)
                 .isOwner(false)
                 .build();
     }
 
     @Test
-    @DisplayName("register creates user in Cognito and local database")
+    @DisplayName("register creates user in Cognito without phone number and local database")
     void register_success() {
         RegisterRequestDto request = RegisterRequestDto.builder()
                 .email("test@example.com")
@@ -106,7 +114,7 @@ class AuthServiceTest {
                 .build();
 
         when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
-        when(cognitoService.signUp(anyString(), eq("test@example.com"), eq("Password123"), eq("Jan"), eq("Kowalski"), eq(123456789)))
+        when(cognitoService.signUp(anyString(), eq("test@example.com"), eq("Password123"), eq("Jan"), eq("Kowalski"), isNull()))
                 .thenReturn(signUpResponse);
         when(userRepository.save(any(User.class))).thenReturn(sampleUser);
         when(userService.mapToResponse(sampleUser)).thenReturn(sampleUserDto);
@@ -136,6 +144,76 @@ class AuthServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> authService.register(request));
         verify(cognitoService, never()).signUp(anyString(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("requestPhoneVerification sends SMS and saves phone number")
+    void requestPhoneVerification_success() {
+        PhoneVerificationRequestDto request = PhoneVerificationRequestDto.builder()
+                .phoneNumber(123456789)
+                .accessToken("mock-token")
+                .build();
+
+        when(cognitoService.formatPhoneNumber(123456789)).thenReturn("+48123456789");
+        when(cognitoService.updatePhoneNumber("mock-token", "+48123456789"))
+                .thenReturn(UpdateUserAttributesResponse.builder()
+                        .codeDeliveryDetailsList(List.of(CodeDeliveryDetailsType.builder().destination("+48123456789").build()))
+                        .build());
+
+        GetUserResponse getUserResponse = GetUserResponse.builder()
+                .username("user-uuid-123")
+                .userAttributes(AttributeType.builder().name("sub").value("cognito-sub-123").build())
+                .build();
+        when(cognitoService.getUser("mock-token")).thenReturn(getUserResponse);
+        when(userRepository.findByCognitoSub("cognito-sub-123")).thenReturn(Optional.of(sampleUser));
+
+        MessageResponseDto response = authService.requestPhoneVerification(request, null);
+
+        assertNotNull(response);
+        assertTrue(response.getSuccess());
+        assertTrue(response.getMessage().contains("Verification SMS sent"));
+        verify(userRepository, times(1)).save(sampleUser);
+        assertFalse(sampleUser.getIsPhoneVerified());
+    }
+
+    @Test
+    @DisplayName("verifyPhone verifies code with Cognito and marks user phone verified")
+    void verifyPhone_success() {
+        ConfirmPhoneRequestDto request = ConfirmPhoneRequestDto.builder()
+                .phoneNumber(123456789)
+                .code("654321")
+                .accessToken("mock-token")
+                .build();
+
+        when(cognitoService.verifyPhoneNumber("mock-token", "654321"))
+                .thenReturn(VerifyUserAttributeResponse.builder().build());
+
+        GetUserResponse getUserResponse = GetUserResponse.builder()
+                .username("user-uuid-123")
+                .userAttributes(AttributeType.builder().name("sub").value("cognito-sub-123").build())
+                .build();
+        when(cognitoService.getUser("mock-token")).thenReturn(getUserResponse);
+        when(userRepository.findByCognitoSub("cognito-sub-123")).thenReturn(Optional.of(sampleUser));
+
+        MessageResponseDto response = authService.verifyPhone(request, null);
+
+        assertNotNull(response);
+        assertTrue(response.getSuccess());
+        assertTrue(sampleUser.getIsPhoneVerified());
+        verify(userRepository, times(1)).save(sampleUser);
+    }
+
+    @Test
+    @DisplayName("resendPhoneVerificationCode sends SMS code again")
+    void resendPhoneVerificationCode_success() {
+        when(cognitoService.sendPhoneVerificationCode("mock-token"))
+                .thenReturn(GetUserAttributeVerificationCodeResponse.builder().build());
+
+        MessageResponseDto response = authService.resendPhoneVerificationCode("mock-token", null);
+
+        assertNotNull(response);
+        assertTrue(response.getSuccess());
+        verify(cognitoService, times(1)).sendPhoneVerificationCode("mock-token");
     }
 
     @Test
