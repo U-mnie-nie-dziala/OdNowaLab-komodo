@@ -36,6 +36,9 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION=eu-central-1
+      - aws.cognito.user-pool-id=${COGNITO_USER_POOL_ID:}
+      - aws.cognito.client-id=${COGNITO_CLIENT_ID:}
+      - aws.cognito.region=${eu-central-1}
     ports:
       - "8080:8080"
     depends_on:
