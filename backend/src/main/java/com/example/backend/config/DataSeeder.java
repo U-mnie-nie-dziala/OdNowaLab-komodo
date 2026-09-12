@@ -180,15 +180,9 @@ public class DataSeeder implements CommandLineRunner {
                 .provider(warsztat)
                 .build();
 
-        Service regulacjaHamulcow = Service.builder()
-                .name("Zabójstwo na zlecenie")
-                .coinCost(2137)
-                .provider(warsztat)
-                .build();
-
         serviceRepository.saveAll(List.of(
                 kawa, ciastko, chleb, drozdzowka,
-                przegladRoweru, regulacjaHamulcow
+                przegladRoweru
         ));
         log.info("Seeded {} services.", serviceRepository.count());
 
@@ -239,7 +233,7 @@ public class DataSeeder implements CommandLineRunner {
 
         Transaction t3 = Transaction.builder()
                 .user(userTomasz)
-                .service(regulacjaHamulcow)
+                .service(przegladRoweru)
                 .date(LocalDate.of(2026, 9, 6))
                 .build();
 
