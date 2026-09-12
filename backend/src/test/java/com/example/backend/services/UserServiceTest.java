@@ -35,6 +35,8 @@ class UserServiceTest {
     void setUp() {
         sampleUser = User.builder()
                 .id(1)
+                .email("jan.kowalski@example.com")
+                .cognitoSub("sub-12345")
                 .name("Jan")
                 .surname("Kowalski")
                 .coins(100)
@@ -53,6 +55,7 @@ class UserServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("Jan", result.get(0).getName());
+        assertEquals("jan.kowalski@example.com", result.get(0).getEmail());
         assertEquals(100, result.get(0).getCoins());
         verify(userRepository, times(1)).findAll();
     }
@@ -67,7 +70,32 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(1, result.getId());
         assertEquals("Jan", result.getName());
+        assertEquals("jan.kowalski@example.com", result.getEmail());
         assertEquals(100, result.getCoins());
+    }
+
+    @Test
+    @DisplayName("getUserByEmail returns user when found")
+    void getUserByEmail_found_returnsDto() {
+        when(userRepository.findByEmail("jan.kowalski@example.com")).thenReturn(Optional.of(sampleUser));
+
+        UserResponseDto result = userService.getUserByEmail("jan.kowalski@example.com");
+
+        assertNotNull(result);
+        assertEquals("jan.kowalski@example.com", result.getEmail());
+        assertEquals("Jan", result.getName());
+    }
+
+    @Test
+    @DisplayName("getUserByCognitoSub returns user when found")
+    void getUserByCognitoSub_found_returnsDto() {
+        when(userRepository.findByCognitoSub("sub-12345")).thenReturn(Optional.of(sampleUser));
+
+        UserResponseDto result = userService.getUserByCognitoSub("sub-12345");
+
+        assertNotNull(result);
+        assertEquals("sub-12345", result.getCognitoSub());
+        assertEquals("Jan", result.getName());
     }
 
     @Test
@@ -82,6 +110,8 @@ class UserServiceTest {
     @DisplayName("createUser saves and returns new user")
     void createUser_success() {
         UserRequestDto request = UserRequestDto.builder()
+                .email("anna.nowak@example.com")
+                .cognitoSub("sub-67890")
                 .name("Anna")
                 .surname("Nowak")
                 .coins(50)
@@ -92,6 +122,8 @@ class UserServiceTest {
 
         User savedUser = User.builder()
                 .id(2)
+                .email("anna.nowak@example.com")
+                .cognitoSub("sub-67890")
                 .name("Anna")
                 .surname("Nowak")
                 .coins(50)
@@ -107,6 +139,7 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(2, result.getId());
         assertEquals("Anna", result.getName());
+        assertEquals("anna.nowak@example.com", result.getEmail());
         assertEquals(50, result.getCoins());
         assertTrue(result.getIsOwner());
         verify(userRepository, times(1)).save(any(User.class));
@@ -116,6 +149,7 @@ class UserServiceTest {
     @DisplayName("updateUser updates fields and returns updated user")
     void updateUser_success() {
         UserRequestDto request = UserRequestDto.builder()
+                .email("janusz@example.com")
                 .name("Janusz")
                 .surname("Kowalski")
                 .coins(150)
@@ -130,6 +164,7 @@ class UserServiceTest {
         UserResponseDto result = userService.updateUser(1, request);
 
         assertEquals("Janusz", result.getName());
+        assertEquals("janusz@example.com", result.getEmail());
         assertEquals(150, result.getCoins());
         assertEquals(111222333, result.getPhoneNumber());
         assertTrue(result.getIsOwner());

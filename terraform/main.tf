@@ -106,3 +106,45 @@ resource "aws_sns_sms_preferences" "sms_settings" {
   default_sender_id = "Hackathon"
   default_sms_type  = "Promotional" # Zmienione na typ promocyjny
 }
+
+# Pula użytkowników (baza kont)
+resource "aws_cognito_user_pool" "app_pool" {
+  name = "hackathon-user-pool"
+
+  # Logowanie za pomocą adresu e-mail
+  alias_attributes = ["email"]
+  auto_verified_attributes = ["email"]
+
+  password_policy {
+    minimum_length    = 8
+    require_lowercase = true
+    require_numbers   = true
+    require_symbols   = false
+    require_uppercase = true
+  }
+}
+
+# Klient dla aplikacji frontendowej (React)
+resource "aws_cognito_user_pool_client" "app_client" {
+  name         = "hackathon-react-client"
+  user_pool_id = aws_cognito_user_pool.app_pool.id
+
+  # Wyłączamy generowanie tzw. Client Secret, ponieważ aplikacje typu SPA (React)
+  # nie są w stanie go bezpiecznie przechowywać
+  generate_secret = false
+
+  explicit_auth_flows = [
+    "ALLOW_USER_SRP_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH",
+    "ALLOW_USER_PASSWORD_AUTH"
+  ]
+}
+
+# Wyplucie ID potrzebnych do konfiguracji frontendu i backendu
+output "cognito_user_pool_id" {
+  value = aws_cognito_user_pool.app_pool.id
+}
+
+output "cognito_client_id" {
+  value = aws_cognito_user_pool_client.app_client.id
+}

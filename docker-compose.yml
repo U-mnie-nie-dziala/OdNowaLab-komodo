@@ -36,6 +36,9 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION=eu-central-1
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
+      - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
+      - AWS_COGNITO_REGION=eu-central-1
     ports:
       - "8080:8080"
     depends_on:
@@ -43,6 +46,9 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    volumes:
+      # NOWE: Mapowanie wolumenu dla plików
+      - backend_uploads:/app/uploads
 
   frontend:
     build:
@@ -58,6 +64,7 @@ services:
 
 volumes:
   postgres_data:
+  backend_uploads:
 
 networks:
   app-network:

@@ -1,5 +1,6 @@
 package com.example.backend.controllers;
 
+import com.example.backend.dtos.TransactionByPhoneRequestDto;
 import com.example.backend.dtos.TransactionRequestDto;
 import com.example.backend.dtos.TransactionResponseDto;
 import com.example.backend.services.TransactionService;
@@ -53,10 +54,10 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.getTransactionById(id));
     }
 
-    @Operation(summary = "Create a new transaction", description = "Creates a new transaction record linking a user, service, and execution date.")
+    @Operation(summary = "Create a new transaction", description = "Creates a new transaction record linking a user (via userId or phoneNumber), service, and execution date.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Transaction created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request payload"),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload or insufficient coins"),
             @ApiResponse(responseCode = "404", description = "User or service not found")
     })
     @PostMapping
@@ -65,10 +66,22 @@ public class TransactionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @Operation(summary = "Create transaction by user phone number", description = "Creates a new transaction for a user identified solely by their phone number.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Transaction created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload or insufficient coins"),
+            @ApiResponse(responseCode = "404", description = "User or service not found")
+    })
+    @PostMapping("/by-phone")
+    public ResponseEntity<TransactionResponseDto> createTransactionByPhone(@Valid @RequestBody TransactionByPhoneRequestDto request) {
+        TransactionResponseDto created = transactionService.createTransactionByPhone(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
     @Operation(summary = "Update an existing transaction", description = "Updates an existing transaction by its ID.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Transaction updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request payload"),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload or insufficient coins"),
             @ApiResponse(responseCode = "404", description = "Transaction, user, or service not found")
     })
     @PutMapping("/{id}")

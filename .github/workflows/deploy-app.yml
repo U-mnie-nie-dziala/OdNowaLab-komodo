@@ -16,7 +16,7 @@ jobs:
           script: |
             # Jeśli folderu nie ma, klonuje repozytorium używając tokena GH_PAT
             if [ ! -d "hackathon-aws-terraform-test" ]; then
-              git clone https://${{ secrets.GH_PAT }}@github.com/garnaalpak/hackathon-aws-terraform-test.git
+              git clone https://${{ secrets.GH_PAT }}@github.com/U-mnie-nie-dziala/OdNowaLab-komodo.git
             fi
             
             cd hackathon-aws-terraform-test
@@ -28,6 +28,13 @@ jobs:
             echo "SPRING_DATASOURCE_URL=${{ secrets.DB_URL }}" > .env
             echo "SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
             echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+            echo "SPRING_DATASOURCE_URL=${{ secrets.DB_URL }}" > .env
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
+            echo "AWS_REGION=eu-central-1" >> .env
+            echo "COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" >> .env
+            echo "COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" >> .env
+            echo "AWS_COGNITO_REGION=eu-central-1" >> .env
             
             # Stawia kontenery
             docker compose up -d --build
