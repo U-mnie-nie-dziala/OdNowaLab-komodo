@@ -31,6 +31,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpRespo
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -40,8 +41,8 @@ public class CognitoService {
     private final CognitoIdentityProviderClient cognitoClient;
     private final CognitoProperties cognitoProperties;
 
-    public SignUpResponse signUp(String email, String password, String name, String surname, Integer phoneNumber) {
-        log.info("Registering user in AWS Cognito for email: {}", email);
+    public SignUpResponse signUp(String username, String email, String password, String name, String surname, Integer phoneNumber) {
+        log.info("Registering user in AWS Cognito for email: {} with username: {}", email, username);
 
         List<AttributeType> attributes = new ArrayList<>();
         attributes.add(AttributeType.builder().name("email").value(email).build());
@@ -59,7 +60,7 @@ public class CognitoService {
 
         SignUpRequest request = SignUpRequest.builder()
                 .clientId(cognitoProperties.getClientId())
-                .username(email)
+                .username(username)
                 .password(password)
                 .userAttributes(attributes)
                 .build();
@@ -67,34 +68,38 @@ public class CognitoService {
         return cognitoClient.signUp(request);
     }
 
-    public ConfirmSignUpResponse confirmSignUp(String email, String confirmationCode) {
-        log.info("Confirming sign-up in AWS Cognito for email: {}", email);
+    public SignUpResponse signUp(String email, String password, String name, String surname, Integer phoneNumber) {
+        return signUp(UUID.randomUUID().toString(), email, password, name, surname, phoneNumber);
+    }
+
+    public ConfirmSignUpResponse confirmSignUp(String username, String confirmationCode) {
+        log.info("Confirming sign-up in AWS Cognito for username: {}", username);
         ConfirmSignUpRequest request = ConfirmSignUpRequest.builder()
                 .clientId(cognitoProperties.getClientId())
-                .username(email)
+                .username(username)
                 .confirmationCode(confirmationCode)
                 .build();
 
         return cognitoClient.confirmSignUp(request);
     }
 
-    public ResendConfirmationCodeResponse resendConfirmationCode(String email) {
-        log.info("Resending confirmation code in AWS Cognito for email: {}", email);
+    public ResendConfirmationCodeResponse resendConfirmationCode(String username) {
+        log.info("Resending confirmation code in AWS Cognito for username: {}", username);
         ResendConfirmationCodeRequest request = ResendConfirmationCodeRequest.builder()
                 .clientId(cognitoProperties.getClientId())
-                .username(email)
+                .username(username)
                 .build();
 
         return cognitoClient.resendConfirmationCode(request);
     }
 
-    public InitiateAuthResponse login(String email, String password) {
-        log.info("Authenticating user with AWS Cognito: {}", email);
+    public InitiateAuthResponse login(String usernameOrEmail, String password) {
+        log.info("Authenticating user with AWS Cognito: {}", usernameOrEmail);
         InitiateAuthRequest request = InitiateAuthRequest.builder()
                 .authFlow(AuthFlowType.USER_PASSWORD_AUTH)
                 .clientId(cognitoProperties.getClientId())
                 .authParameters(Map.of(
-                        "USERNAME", email,
+                        "USERNAME", usernameOrEmail,
                         "PASSWORD", password
                 ))
                 .build();
@@ -115,21 +120,21 @@ public class CognitoService {
         return cognitoClient.initiateAuth(request);
     }
 
-    public ForgotPasswordResponse forgotPassword(String email) {
-        log.info("Initiating forgot password flow in AWS Cognito for email: {}", email);
+    public ForgotPasswordResponse forgotPassword(String usernameOrEmail) {
+        log.info("Initiating forgot password flow in AWS Cognito for username/email: {}", usernameOrEmail);
         ForgotPasswordRequest request = ForgotPasswordRequest.builder()
                 .clientId(cognitoProperties.getClientId())
-                .username(email)
+                .username(usernameOrEmail)
                 .build();
 
         return cognitoClient.forgotPassword(request);
     }
 
-    public ConfirmForgotPasswordResponse confirmForgotPassword(String email, String confirmationCode, String newPassword) {
-        log.info("Confirming forgot password in AWS Cognito for email: {}", email);
+    public ConfirmForgotPasswordResponse confirmForgotPassword(String usernameOrEmail, String confirmationCode, String newPassword) {
+        log.info("Confirming forgot password in AWS Cognito for username/email: {}", usernameOrEmail);
         ConfirmForgotPasswordRequest request = ConfirmForgotPasswordRequest.builder()
                 .clientId(cognitoProperties.getClientId())
-                .username(email)
+                .username(usernameOrEmail)
                 .confirmationCode(confirmationCode)
                 .password(newPassword)
                 .build();
@@ -168,6 +173,7 @@ public class CognitoService {
 
     public AdminCreateUserResponse adminCreateUser(String email, String temporaryPassword, String name, String surname, Integer phoneNumber) {
         log.info("Admin creating user in AWS Cognito for email: {}", email);
+        String username = UUID.randomUUID().toString();
         List<AttributeType> attributes = new ArrayList<>();
         attributes.add(AttributeType.builder().name("email").value(email).build());
         attributes.add(AttributeType.builder().name("email_verified").value("true").build());
@@ -184,7 +190,7 @@ public class CognitoService {
 
         AdminCreateUserRequest.Builder builder = AdminCreateUserRequest.builder()
                 .userPoolId(cognitoProperties.getUserPoolId())
-                .username(email)
+                .username(username)
                 .userAttributes(attributes);
 
         if (temporaryPassword != null && !temporaryPassword.isBlank()) {

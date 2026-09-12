@@ -22,6 +22,9 @@ public class UserResponseDto {
     @Schema(description = "AWS Cognito unique subject identifier (sub)", example = "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d")
     private String cognitoSub;
 
+    @Schema(description = "AWS Cognito internal username identifier", example = "c2a9a473-b43e-4b47-bcf7-9a4f7e271a39")
+    private String cognitoUsername;
+
     @Schema(description = "First name of the user", example = "Jan")
     private String name;
 

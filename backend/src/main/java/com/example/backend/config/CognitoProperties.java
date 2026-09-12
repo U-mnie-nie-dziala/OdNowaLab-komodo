@@ -16,4 +16,24 @@ public class CognitoProperties {
     private String region = "eu-central-1";
     private String accessKeyId;
     private String secretAccessKey;
+
+    public String getClientId() {
+        return (clientId != null && !clientId.isBlank()) ? clientId : null;
+    }
+
+    public String getUserPoolId() {
+        return (userPoolId != null && !userPoolId.isBlank()) ? userPoolId : null;
+    }
+
+    public String getRegion() {
+        return (region != null && !region.isBlank()) ? region : "eu-central-1";
+    }
+
+    public String getAccessKeyId() {
+        return (accessKeyId != null && !accessKeyId.isBlank()) ? accessKeyId : null;
+    }
+
+    public String getSecretAccessKey() {
+        return (secretAccessKey != null && !secretAccessKey.isBlank()) ? secretAccessKey : null;
+    }
 }

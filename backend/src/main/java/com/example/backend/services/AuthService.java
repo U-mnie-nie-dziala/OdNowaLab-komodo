@@ -28,6 +28,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpRespo
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,7 +46,12 @@ public class AuthService {
             throw new IllegalArgumentException("User with email " + request.getEmail() + " already exists in the database");
         }
 
+        // When User Pool has alias_attributes = ["email"], username cannot have email format.
+        // A unique non-email username (UUID) is generated and email is linked as an alias attribute.
+        String cognitoUsername = UUID.randomUUID().toString();
+
         SignUpResponse signUpResponse = cognitoService.signUp(
+                cognitoUsername,
                 request.getEmail(),
                 request.getPassword(),
                 request.getName(),
@@ -55,6 +61,7 @@ public class AuthService {
 
         User user = User.builder()
                 .email(request.getEmail())
+                .cognitoUsername(cognitoUsername)
                 .cognitoSub(signUpResponse.userSub())
                 .name(request.getName())
                 .surname(request.getSurname())
@@ -80,7 +87,8 @@ public class AuthService {
     }
 
     public MessageResponseDto confirmSignUp(ConfirmSignUpRequestDto request) {
-        cognitoService.confirmSignUp(request.getEmail(), request.getConfirmationCode());
+        String usernameToConfirm = resolveCognitoUsername(request.getEmail());
+        cognitoService.confirmSignUp(usernameToConfirm, request.getConfirmationCode());
         return MessageResponseDto.builder()
                 .message("Email confirmed successfully. You can now log in.")
                 .success(true)
@@ -88,7 +96,8 @@ public class AuthService {
     }
 
     public MessageResponseDto resendConfirmationCode(String email) {
-        cognitoService.resendConfirmationCode(email);
+        String username = resolveCognitoUsername(email);
+        cognitoService.resendConfirmationCode(username);
         return MessageResponseDto.builder()
                 .message("Confirmation code resent to: " + email)
                 .success(true)
@@ -145,7 +154,8 @@ public class AuthService {
     }
 
     public MessageResponseDto forgotPassword(ForgotPasswordRequestDto request) {
-        cognitoService.forgotPassword(request.getEmail());
+        String username = resolveCognitoUsername(request.getEmail());
+        cognitoService.forgotPassword(username);
         return MessageResponseDto.builder()
                 .message("Password reset code sent to your registered email address.")
                 .success(true)
@@ -153,7 +163,8 @@ public class AuthService {
     }
 
     public MessageResponseDto confirmForgotPassword(ConfirmForgotPasswordRequestDto request) {
-        cognitoService.confirmForgotPassword(request.getEmail(), request.getConfirmationCode(), request.getNewPassword());
+        String username = resolveCognitoUsername(request.getEmail());
+        cognitoService.confirmForgotPassword(username, request.getConfirmationCode(), request.getNewPassword());
         return MessageResponseDto.builder()
                 .message("Password has been successfully reset. You can now log in.")
                 .success(true)
@@ -195,6 +206,9 @@ public class AuthService {
         if (userOptional.isEmpty() && email != null) {
             userOptional = userRepository.findByEmail(email);
         }
+        if (userOptional.isEmpty() && userResponse.username() != null) {
+            userOptional = userRepository.findByCognitoUsername(userResponse.username());
+        }
 
         User user = userOptional.orElseGet(() -> {
             Integer phone = null;
@@ -215,6 +229,7 @@ public class AuthService {
             User newUser = User.builder()
                     .email(email != null ? email : userResponse.username())
                     .cognitoSub(sub)
+                    .cognitoUsername(userResponse.username())
                     .name(attributes.getOrDefault("name", "User"))
                     .surname(attributes.getOrDefault("family_name", "Cognito"))
                     .phoneNumber(phone)
@@ -236,6 +251,17 @@ public class AuthService {
                 .message("Logged out successfully from all devices.")
                 .success(true)
                 .build();
+    }
+
+    private String resolveCognitoUsername(String email) {
+        if (email == null) {
+            return null;
+        }
+        Optional<User> user = userRepository.findByEmail(email);
+        if (user.isPresent() && user.get().getCognitoUsername() != null && !user.get().getCognitoUsername().isBlank()) {
+            return user.get().getCognitoUsername();
+        }
+        return email;
     }
 
     private String extractBearerToken(String authHeader) {
@@ -279,6 +305,7 @@ public class AuthService {
             User newUser = User.builder()
                     .email(email)
                     .cognitoSub(sub)
+                    .cognitoUsername(userResponse.username())
                     .name(attributes.getOrDefault("name", "User"))
                     .surname(attributes.getOrDefault("family_name", "Cognito"))
                     .phoneNumber(phone)

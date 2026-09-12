@@ -51,6 +51,7 @@ public class UserService {
         User user = User.builder()
                 .email(request.getEmail())
                 .cognitoSub(request.getCognitoSub())
+                .cognitoUsername(request.getCognitoUsername())
                 .name(request.getName())
                 .coins(request.getCoins())
                 .surname(request.getSurname())
@@ -73,6 +74,9 @@ public class UserService {
         }
         if (request.getCognitoSub() != null) {
             user.setCognitoSub(request.getCognitoSub());
+        }
+        if (request.getCognitoUsername() != null) {
+            user.setCognitoUsername(request.getCognitoUsername());
         }
         user.setName(request.getName());
         user.setCoins(request.getCoins());
@@ -102,6 +106,7 @@ public class UserService {
                 .id(user.getId())
                 .email(user.getEmail())
                 .cognitoSub(user.getCognitoSub())
+                .cognitoUsername(user.getCognitoUsername())
                 .name(user.getName())
                 .coins(user.getCoins())
                 .surname(user.getSurname())

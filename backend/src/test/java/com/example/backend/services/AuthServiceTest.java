@@ -37,6 +37,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -63,6 +64,7 @@ class AuthServiceTest {
         sampleUser = User.builder()
                 .id(1)
                 .email("test@example.com")
+                .cognitoUsername("user-uuid-123")
                 .cognitoSub("cognito-sub-123")
                 .name("Jan")
                 .surname("Kowalski")
@@ -75,6 +77,7 @@ class AuthServiceTest {
         sampleUserDto = UserResponseDto.builder()
                 .id(1)
                 .email("test@example.com")
+                .cognitoUsername("user-uuid-123")
                 .cognitoSub("cognito-sub-123")
                 .name("Jan")
                 .surname("Kowalski")
@@ -103,7 +106,7 @@ class AuthServiceTest {
                 .build();
 
         when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
-        when(cognitoService.signUp(eq("test@example.com"), eq("Password123"), eq("Jan"), eq("Kowalski"), eq(123456789)))
+        when(cognitoService.signUp(anyString(), eq("test@example.com"), eq("Password123"), eq("Jan"), eq("Kowalski"), eq(123456789)))
                 .thenReturn(signUpResponse);
         when(userRepository.save(any(User.class))).thenReturn(sampleUser);
         when(userService.mapToResponse(sampleUser)).thenReturn(sampleUserDto);
@@ -132,7 +135,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class, () -> authService.register(request));
-        verify(cognitoService, never()).signUp(any(), any(), any(), any(), any());
+        verify(cognitoService, never()).signUp(anyString(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -143,27 +146,29 @@ class AuthServiceTest {
                 .confirmationCode("123456")
                 .build();
 
-        when(cognitoService.confirmSignUp("test@example.com", "123456"))
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(sampleUser));
+        when(cognitoService.confirmSignUp("user-uuid-123", "123456"))
                 .thenReturn(ConfirmSignUpResponse.builder().build());
 
         MessageResponseDto response = authService.confirmSignUp(request);
 
         assertNotNull(response);
         assertTrue(response.getSuccess());
-        verify(cognitoService, times(1)).confirmSignUp("test@example.com", "123456");
+        verify(cognitoService, times(1)).confirmSignUp("user-uuid-123", "123456");
     }
 
     @Test
     @DisplayName("resendConfirmationCode calls cognitoService")
     void resendConfirmationCode_success() {
-        when(cognitoService.resendConfirmationCode("test@example.com"))
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(sampleUser));
+        when(cognitoService.resendConfirmationCode("user-uuid-123"))
                 .thenReturn(ResendConfirmationCodeResponse.builder().build());
 
         MessageResponseDto response = authService.resendConfirmationCode("test@example.com");
 
         assertNotNull(response);
         assertTrue(response.getSuccess());
-        verify(cognitoService, times(1)).resendConfirmationCode("test@example.com");
+        verify(cognitoService, times(1)).resendConfirmationCode("user-uuid-123");
     }
 
     @Test
@@ -235,14 +240,15 @@ class AuthServiceTest {
                 .email("test@example.com")
                 .build();
 
-        when(cognitoService.forgotPassword("test@example.com"))
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(sampleUser));
+        when(cognitoService.forgotPassword("user-uuid-123"))
                 .thenReturn(ForgotPasswordResponse.builder().build());
 
         MessageResponseDto response = authService.forgotPassword(request);
 
         assertNotNull(response);
         assertTrue(response.getSuccess());
-        verify(cognitoService, times(1)).forgotPassword("test@example.com");
+        verify(cognitoService, times(1)).forgotPassword("user-uuid-123");
     }
 
     @Test
@@ -254,14 +260,15 @@ class AuthServiceTest {
                 .newPassword("NewPassword123")
                 .build();
 
-        when(cognitoService.confirmForgotPassword("test@example.com", "123456", "NewPassword123"))
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(sampleUser));
+        when(cognitoService.confirmForgotPassword("user-uuid-123", "123456", "NewPassword123"))
                 .thenReturn(ConfirmForgotPasswordResponse.builder().build());
 
         MessageResponseDto response = authService.confirmForgotPassword(request);
 
         assertNotNull(response);
         assertTrue(response.getSuccess());
-        verify(cognitoService, times(1)).confirmForgotPassword("test@example.com", "123456", "NewPassword123");
+        verify(cognitoService, times(1)).confirmForgotPassword("user-uuid-123", "123456", "NewPassword123");
     }
 
     @Test
@@ -286,7 +293,7 @@ class AuthServiceTest {
     @DisplayName("getCurrentUser fetches Cognito user and returns local user profile")
     void getCurrentUser_success() {
         GetUserResponse getUserResponse = GetUserResponse.builder()
-                .username("test@example.com")
+                .username("user-uuid-123")
                 .userAttributes(
                         AttributeType.builder().name("sub").value("cognito-sub-123").build(),
                         AttributeType.builder().name("email").value("test@example.com").build(),
