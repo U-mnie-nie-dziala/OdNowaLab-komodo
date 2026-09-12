@@ -39,3 +39,6 @@ out/
 ### Secrets ###
 application.secret*
 *.secret
+
+### User Uploads ###
+uploads/

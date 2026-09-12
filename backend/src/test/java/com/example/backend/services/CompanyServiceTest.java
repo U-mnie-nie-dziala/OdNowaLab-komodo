@@ -14,6 +14,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,6 +34,9 @@ class CompanyServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private FileStorageService fileStorageService;
 
     @InjectMocks
     private CompanyService companyService;
@@ -57,6 +63,7 @@ class CompanyServiceTest {
                 .description("Piekarnia rzemieślnicza")
                 .owner(owner)
                 .isInRevitalizationZone(true)
+                .picture(null)
                 .build();
     }
 
@@ -114,6 +121,7 @@ class CompanyServiceTest {
                 .description("Opis")
                 .ownerId(1)
                 .isInRevitalizationZone(false)
+                .picture("/uploads/companies/test.png")
                 .build();
 
         when(userRepository.findById(1)).thenReturn(Optional.of(owner));
@@ -129,6 +137,7 @@ class CompanyServiceTest {
         assertEquals(2, result.getId());
         assertEquals("NowaFirma", result.getName());
         assertEquals(1, result.getOwnerId());
+        assertEquals("/uploads/companies/test.png", result.getPicture());
     }
 
     @Test
@@ -158,6 +167,7 @@ class CompanyServiceTest {
                 .description("Nowy opis")
                 .ownerId(1)
                 .isInRevitalizationZone(false)
+                .picture("/uploads/companies/updated.jpg")
                 .build();
 
         when(companyRepository.findById(1)).thenReturn(Optional.of(sampleCompany));
@@ -169,24 +179,96 @@ class CompanyServiceTest {
         assertEquals("EkoPiekarnia Zmieniona", result.getName());
         assertEquals(new BigDecimal("52.50"), result.getLocationX());
         assertFalse(result.getIsInRevitalizationZone());
+        assertEquals("/uploads/companies/updated.jpg", result.getPicture());
     }
 
     @Test
-    @DisplayName("deleteCompany deletes company when found")
+    @DisplayName("deleteCompany deletes company and its image when found")
     void deleteCompany_success() {
-        when(companyRepository.existsById(1)).thenReturn(true);
+        sampleCompany.setPicture("/uploads/companies/old.png");
+        when(companyRepository.findById(1)).thenReturn(Optional.of(sampleCompany));
 
         companyService.deleteCompany(1);
 
-        verify(companyRepository, times(1)).deleteById(1);
+        verify(fileStorageService, times(1)).deleteFile("/uploads/companies/old.png");
+        verify(companyRepository, times(1)).delete(sampleCompany);
     }
 
     @Test
     @DisplayName("deleteCompany throws ResourceNotFoundException when not found")
     void deleteCompany_notFound_throwsException() {
-        when(companyRepository.existsById(99)).thenReturn(false);
+        when(companyRepository.findById(99)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> companyService.deleteCompany(99));
-        verify(companyRepository, never()).deleteById(any());
+        verify(companyRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("uploadCompanyImage uploads new image and updates picture field")
+    void uploadCompanyImage_success() {
+        MockMultipartFile file = new MockMultipartFile("file", "bakery.png", "image/png", "dummy-bytes".getBytes());
+
+        when(companyRepository.findById(1)).thenReturn(Optional.of(sampleCompany));
+        when(fileStorageService.storeFile(file, "companies")).thenReturn("/uploads/companies/new-uuid.png");
+        when(companyRepository.save(any(Company.class))).thenAnswer(i -> i.getArgument(0));
+
+        CompanyResponseDto result = companyService.uploadCompanyImage(1, file);
+
+        assertEquals("/uploads/companies/new-uuid.png", result.getPicture());
+        verify(fileStorageService, times(1)).storeFile(file, "companies");
+        verify(companyRepository, times(1)).save(sampleCompany);
+    }
+
+    @Test
+    @DisplayName("uploadCompanyImage deletes previous image when replacing it")
+    void uploadCompanyImage_replacesOldImage() {
+        sampleCompany.setPicture("/uploads/companies/previous.jpg");
+        MockMultipartFile file = new MockMultipartFile("file", "new.jpg", "image/jpeg", "bytes".getBytes());
+
+        when(companyRepository.findById(1)).thenReturn(Optional.of(sampleCompany));
+        when(fileStorageService.storeFile(file, "companies")).thenReturn("/uploads/companies/brand-new.jpg");
+        when(companyRepository.save(any(Company.class))).thenAnswer(i -> i.getArgument(0));
+
+        CompanyResponseDto result = companyService.uploadCompanyImage(1, file);
+
+        verify(fileStorageService, times(1)).deleteFile("/uploads/companies/previous.jpg");
+        assertEquals("/uploads/companies/brand-new.jpg", result.getPicture());
+    }
+
+    @Test
+    @DisplayName("deleteCompanyImage deletes stored file and clears picture field")
+    void deleteCompanyImage_success() {
+        sampleCompany.setPicture("/uploads/companies/image-to-remove.png");
+        when(companyRepository.findById(1)).thenReturn(Optional.of(sampleCompany));
+
+        companyService.deleteCompanyImage(1);
+
+        verify(fileStorageService, times(1)).deleteFile("/uploads/companies/image-to-remove.png");
+        assertNull(sampleCompany.getPicture());
+        verify(companyRepository, times(1)).save(sampleCompany);
+    }
+
+    @Test
+    @DisplayName("getCompanyImageResource returns Resource when image exists")
+    void getCompanyImageResource_success() {
+        sampleCompany.setPicture("/uploads/companies/test.png");
+        Resource dummyResource = new ByteArrayResource("image-content".getBytes());
+
+        when(companyRepository.findById(1)).thenReturn(Optional.of(sampleCompany));
+        when(fileStorageService.loadFileAsResource("/uploads/companies/test.png")).thenReturn(dummyResource);
+
+        Resource result = companyService.getCompanyImageResource(1);
+
+        assertNotNull(result);
+        assertEquals(dummyResource, result);
+    }
+
+    @Test
+    @DisplayName("getCompanyImageResource throws ResourceNotFoundException when company has no picture")
+    void getCompanyImageResource_noImage_throwsException() {
+        sampleCompany.setPicture(null);
+        when(companyRepository.findById(1)).thenReturn(Optional.of(sampleCompany));
+
+        assertThrows(ResourceNotFoundException.class, () -> companyService.getCompanyImageResource(1));
     }
 }

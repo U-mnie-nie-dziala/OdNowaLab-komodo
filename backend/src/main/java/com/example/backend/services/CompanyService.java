@@ -8,8 +8,10 @@ import com.example.backend.models.User;
 import com.example.backend.repositories.CompanyRepository;
 import com.example.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +22,7 @@ public class CompanyService {
 
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
 
     @Transactional(readOnly = true)
     public List<CompanyResponseDto> getAllCompanies() {
@@ -54,6 +57,7 @@ public class CompanyService {
                 .description(request.getDescription())
                 .owner(owner)
                 .isInRevitalizationZone(request.getIsInRevitalizationZone() != null ? request.getIsInRevitalizationZone() : false)
+                .picture(request.getPicture())
                 .build();
 
         Company saved = companyRepository.save(company);
@@ -76,6 +80,9 @@ public class CompanyService {
         if (request.getIsInRevitalizationZone() != null) {
             company.setIsInRevitalizationZone(request.getIsInRevitalizationZone());
         }
+        if (request.getPicture() != null) {
+            company.setPicture(request.getPicture());
+        }
 
         Company updated = companyRepository.save(company);
         return mapToResponse(updated);
@@ -83,10 +90,59 @@ public class CompanyService {
 
     @Transactional
     public void deleteCompany(Integer id) {
-        if (!companyRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Company not found with id: " + id);
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + id));
+
+        if (company.getPicture() != null) {
+            fileStorageService.deleteFile(company.getPicture());
         }
-        companyRepository.deleteById(id);
+        companyRepository.delete(company);
+    }
+
+    @Transactional
+    public CompanyResponseDto uploadCompanyImage(Integer id, MultipartFile file) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + id));
+
+        // If old picture exists, remove it
+        if (company.getPicture() != null) {
+            fileStorageService.deleteFile(company.getPicture());
+        }
+
+        String imagePath = fileStorageService.storeFile(file, "companies");
+        company.setPicture(imagePath);
+
+        Company saved = companyRepository.save(company);
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public CompanyResponseDto updateCompanyImage(Integer id, MultipartFile file) {
+        return uploadCompanyImage(id, file);
+    }
+
+    @Transactional
+    public void deleteCompanyImage(Integer id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + id));
+
+        if (company.getPicture() != null) {
+            fileStorageService.deleteFile(company.getPicture());
+            company.setPicture(null);
+            companyRepository.save(company);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public Resource getCompanyImageResource(Integer id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + id));
+
+        if (company.getPicture() == null) {
+            throw new ResourceNotFoundException("Company with id " + id + " does not have an image");
+        }
+
+        return fileStorageService.loadFileAsResource(company.getPicture());
     }
 
     public CompanyResponseDto mapToResponse(Company company) {
@@ -98,6 +154,7 @@ public class CompanyService {
                 .description(company.getDescription())
                 .ownerId(company.getOwner() != null ? company.getOwner().getId() : null)
                 .isInRevitalizationZone(company.getIsInRevitalizationZone())
+                .picture(company.getPicture())
                 .build();
     }
 }
