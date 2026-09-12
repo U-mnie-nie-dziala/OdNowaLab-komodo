@@ -23,7 +23,7 @@ export function Screen({ children, refreshControl, scroll = true }: ScreenProps)
             {children}
           </ScrollView>
         ) : (
-          <ThemedView style={styles.content}>{children}</ThemedView>
+          <ThemedView style={[styles.content, styles.nonScrollContent]}>{children}</ThemedView>
         )}
       </SafeAreaView>
     </ThemedView>
@@ -49,5 +49,8 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.three,
     paddingBottom: Spacing.four,
     gap: Spacing.three,
+  },
+  nonScrollContent: {
+    flex: 1,
   },
 });
